@@ -1,8 +1,10 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
 
-// Make Pusher available globally for Laravel Echo
-(window as any).Pusher = Pusher;
+// Make Pusher available globally for Laravel Echo (only in browser environment)
+if (typeof window !== "undefined") {
+  (window as any).Pusher = Pusher;
+}
 
 export interface AudioFileStatusUpdate {
   id: number;
@@ -242,7 +244,9 @@ class WebSocketService {
 // Create and export singleton instance
 export const websocketService = new WebSocketService();
 
-// Initialize on import
-websocketService.initialize();
+// Initialize on import (skip in test environment)
+if (typeof window !== "undefined" && !import.meta.env.VITEST) {
+  websocketService.initialize();
+}
 
 export default websocketService;
