@@ -8,7 +8,7 @@ on:
 
 env:
   NODE_VERSION: '22'
-  PHP_VERSION: '8.2'
+  PHP_VERSION: '8.4'
 
 jobs:
   # Frontend React TypeScript Tests
