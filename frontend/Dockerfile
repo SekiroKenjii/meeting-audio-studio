@@ -7,7 +7,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+# Use npm install since package-lock.json is not committed to repo
+RUN npm install --only=production
 
 # Copy start script first
 COPY start.sh ./
