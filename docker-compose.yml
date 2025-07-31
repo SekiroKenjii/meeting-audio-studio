@@ -1,0 +1,93 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - meeting-studio-network
+
+  # Redis Cache and Queue
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - meeting-studio-network
+    command: redis-server --appendonly yes
+
+  # Laravel Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "8081:8081"  # Reverb WebSocket server
+      - "8082:8082"  # Horizon dashboard
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=${DB_CONNECTION}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=null
+      - CACHE_STORE=redis
+      - QUEUE_CONNECTION=redis
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REVERB_APP_ID=${REVERB_APP_ID}
+      - REVERB_APP_KEY=${REVERB_APP_KEY}
+      - REVERB_APP_SECRET=${REVERB_APP_SECRET}
+      - REVERB_HOST=${REVERB_HOST}
+      - REVERB_PORT=${REVERB_PORT}
+      - REVERB_SCHEME=${REVERB_SCHEME}
+    volumes:
+      - ./backend:/var/www/html
+      - backend_storage:/var/www/html/storage
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - meeting-studio-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+      - VITE_REVERB_HOST=${REVERB_HOST}
+      - VITE_REVERB_PORT=${REVERB_PORT}
+      - VITE_REVERB_SCHEME=${REVERB_SCHEME}
+      - VITE_PUSHER_APP_KEY=${REVERB_APP_KEY}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - meeting-studio-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_storage:
+
+networks:
+  meeting-studio-network:
+    driver: bridge
