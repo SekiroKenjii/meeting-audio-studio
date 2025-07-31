@@ -225,8 +225,8 @@ jobs:
 
     - name: Test Docker Compose build
       run: |
-        docker-compose -f docker-compose.yml config
-        docker-compose -f docker-compose.yml build --no-cache
+        docker compose -f docker-compose.yml config
+        docker compose -f docker-compose.yml build --no-cache
       env:
         DB_CONNECTION: pgsql
         DB_HOST: postgres
@@ -262,7 +262,7 @@ jobs:
 
     - name: Start services with Docker Compose
       run: |
-        docker-compose up -d
+        docker compose up -d
         sleep 30  # Wait for services to be ready
       env:
         DB_CONNECTION: pgsql
@@ -295,7 +295,7 @@ jobs:
 
     - name: Cleanup
       if: always()
-      run: docker-compose down -v
+      run: docker compose down -v
 
   # Deployment (only on master branch)
   deploy:
