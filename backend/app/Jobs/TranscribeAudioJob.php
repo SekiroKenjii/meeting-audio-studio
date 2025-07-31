@@ -8,13 +8,13 @@ use App\Abstracts\Services\OpenAIServiceInterface;
 use App\Constants\AudioFileStatus;
 use App\Events\AudioFileStatusUpdated;
 use App\Exceptions\AudioProcessingException;
+use App\Exceptions\OpenAIException;
 use App\Models\AudioFile;
 use Exception;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
-use OpenAIException;
 
 class TranscribeAudioJob implements ShouldQueue
 {
