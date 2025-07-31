@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { useAudio } from "../contexts/AudioContext";
 import { api } from "../../sdk/api";
+import { useAudio } from "../hooks";
 import { useStrictModeEffect } from "../hooks/useStrictModeEffect";
+import { TranscriptDiarizedSegment, TranscriptQuery } from "../types/audio";
 
 const TranscriptViewer: React.FC = () => {
   const { selectedAudioFile, transcript, setTranscript, setError } = useAudio();
@@ -340,31 +341,33 @@ const TranscriptViewer: React.FC = () => {
         <div className="mt-6">
           {activeTab === "diarized" && (
             <div className="space-y-4">
-              {transcript.diarized_segments.map((segment, index) => (
-                <div
-                  key={`${segment.speaker}-${segment.start}-${index}`}
-                  className="bg-gray-50 rounded-lg p-4"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium text-gray-700">
-                          {segment.speaker.replace("Speaker ", "")}
+              {transcript.diarized_segments.map(
+                (segment: TranscriptDiarizedSegment, index: number) => (
+                  <div
+                    key={`${segment.speaker}-${segment.start}-${index}`}
+                    className="bg-gray-50 rounded-lg p-4"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-gray-700">
+                            {segment.speaker.replace("Speaker ", "")}
+                          </span>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900">
+                          {segment.speaker}
                         </span>
                       </div>
-                      <span className="text-sm font-medium text-gray-900">
-                        {segment.speaker}
+                      <span className="text-xs text-gray-500 font-mono">
+                        {formatTime(segment.start)} - {formatTime(segment.end)}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500 font-mono">
-                      {formatTime(segment.start)} - {formatTime(segment.end)}
-                    </span>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {segment.text}
+                    </p>
                   </div>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {segment.text}
-                  </p>
-                </div>
-              ))}
+                )
+              )}
             </div>
           )}
 
@@ -378,7 +381,7 @@ const TranscriptViewer: React.FC = () => {
 
           {activeTab === "queries" && transcript.queries.length > 0 && (
             <div className="space-y-4">
-              {transcript.queries.map((q) => (
+              {transcript.queries.map((q: TranscriptQuery) => (
                 <div
                   key={q.id}
                   className="border border-gray-200 rounded-lg p-4"

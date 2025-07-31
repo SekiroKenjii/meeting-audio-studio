@@ -130,13 +130,6 @@ jobs:
 
     - name: Run PHPUnit tests
       run: php artisan test --coverage-clover coverage.xml
-      env:
-        DB_CONNECTION: pgsql
-        DB_HOST: localhost
-        DB_PORT: 5432
-        DB_DATABASE: testing
-        DB_USERNAME: postgres
-        DB_PASSWORD: postgres
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4

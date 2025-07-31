@@ -51,7 +51,6 @@ export const getErrorType = (status?: number): ErrorType => {
  * Redirects to error page with error information
  */
 export const redirectToErrorPage = (error: ApiError) => {
-  debugger;
   const errorType = getErrorType(error.status);
 
   setGlobalError({

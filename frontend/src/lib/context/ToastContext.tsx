@@ -1,21 +1,9 @@
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useCallback, useMemo, useState } from "react";
 import { Toast, ToastContextType } from "../types/toast";
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
-  }
-  return context;
-};
+export { ToastContext };
 
 interface ToastProviderProps {
   children: React.ReactNode;
@@ -24,30 +12,26 @@ interface ToastProviderProps {
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const generateId = () =>
-    `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-  const addToast = useCallback((toast: Omit<Toast, "id">) => {
-    const id = generateId();
-    const newToast: Toast = {
-      id,
-      duration: 5000, // Default 5 seconds
-      ...toast,
-    };
-
-    setToasts((prev) => [...prev, newToast]);
-
-    // Auto-remove toast if not persistent
-    if (!newToast.persistent && newToast.duration) {
-      setTimeout(() => {
-        removeToast(id);
-      }, newToast.duration);
-    }
-  }, []);
-
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
+
+  const addToast = useCallback(
+    (toast: Omit<Toast, "id">) => {
+      const id = Date.now().toString();
+      const newToast: Toast = { ...toast, id };
+
+      setToasts((prev) => [...prev, newToast]);
+
+      // Auto-remove toast if not persistent
+      if (!newToast.persistent && newToast.duration) {
+        setTimeout(() => {
+          removeToast(id);
+        }, newToast.duration);
+      }
+    },
+    [removeToast]
+  );
 
   const showSuccess = useCallback(
     (title: string, message?: string) => {

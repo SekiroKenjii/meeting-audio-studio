@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useAudio } from "../contexts/AudioContext";
 import ToastService from "../../lib/services/toastService";
 import { api } from "../../sdk/api";
+import { useAudio } from "../hooks";
 import { useStrictModeMountEffect } from "./useStrictModeEffect";
 
 /**

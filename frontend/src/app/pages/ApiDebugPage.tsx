@@ -108,7 +108,7 @@ const ApiDebugPage: React.FC = () => {
       </div>
 
       <div className="space-y-4">
-        {testResults.map((result, index) => (
+        {testResults.map((result) => (
           <div
             key={`${result.name}-${result.timestamp}`}
             className={`p-4 rounded-lg border ${

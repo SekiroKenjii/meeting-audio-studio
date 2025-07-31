@@ -33,6 +33,7 @@ export const useStrictModeEffect = (
 
     // Return cleanup function if provided
     return cleanup;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 };
 
@@ -48,6 +49,7 @@ export const useStrictModeMountEffect = (effect: () => void | (() => void)) => {
 
     hasRunRef.current = true;
     return effect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 };
 
@@ -74,5 +76,6 @@ export const useStrictModeAsyncEffect = <T>(
 
     // Execute async effect
     asyncEffect().catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 };

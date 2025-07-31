@@ -8,7 +8,6 @@ import React, {
   createContext,
   ReactNode,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -19,13 +18,7 @@ import websocketService, {
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-export const useAudio = () => {
-  const context = useContext(AudioContext);
-  if (context === undefined) {
-    throw new Error("useAudio must be used within an AudioProvider");
-  }
-  return context;
-};
+export { AudioContext };
 
 interface AudioProviderProps {
   children: ReactNode;
@@ -40,9 +33,9 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const addAudioFile = (file: AudioFile) => {
+  const addAudioFile = useCallback((file: AudioFile) => {
     setAudioFiles((prev) => [file, ...prev]);
-  };
+  }, []);
 
   const updateAudioFile = useCallback(
     (id: number, updates: Partial<AudioFile>) => {
@@ -87,7 +80,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       console.log("Cleaning up WebSocket listeners");
       unsubscribe();
     };
-  });
+  }, [handleAudioStatusUpdate]);
 
   const value: AudioContextType = useMemo(
     () => ({

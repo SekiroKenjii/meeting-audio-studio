@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { useAudio } from "../contexts/AudioContext";
+import { useAudio } from "../hooks";
 import { useAudioData } from "../hooks/useAudioData";
+import { AudioFile } from "../types/audio";
 import { getAudioStatusConfig } from "../utils/audioStatus";
 import {
   formatDate,
@@ -140,7 +141,7 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
             </tr>
           </thead>
           <tbody className="bg-white">
-            {currentFiles.map((file, index) => {
+            {currentFiles.map((file: AudioFile, index: number) => {
               const statusConfig = getAudioStatusConfig(file.status);
               const isSelected = selectedAudioFile?.id === file.id;
               const isLoading =

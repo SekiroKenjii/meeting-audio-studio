@@ -5,6 +5,7 @@ namespace App\Exceptions;
 use App\Constants\Messages;
 use App\Constants\ResponseCodes;
 use App\Constants\ResponseKeys;
+use App\Exceptions\AudioProcessingException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;

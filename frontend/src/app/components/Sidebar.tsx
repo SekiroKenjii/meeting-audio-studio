@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useSidebar } from "../contexts/SidebarContext";
+import { useSidebar } from "../hooks";
 
 const Sidebar: React.FC = () => {
   const location = useLocation();

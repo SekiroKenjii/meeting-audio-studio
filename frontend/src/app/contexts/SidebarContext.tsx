@@ -1,23 +1,9 @@
 import { SidebarContextType } from "@/app/types/sidebar";
-import React, {
-  createContext,
-  ReactNode,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, ReactNode, useMemo, useState } from "react";
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
-export const useSidebar = () => {
-  const context = useContext(SidebarContext);
-
-  if (context === undefined) {
-    throw new Error("useSidebar must be used within a SidebarProvider");
-  }
-
-  return context;
-};
+export { SidebarContext };
 
 interface SidebarProviderProps {
   children: ReactNode;

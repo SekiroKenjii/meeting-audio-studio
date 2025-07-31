@@ -24,7 +24,7 @@ class GlobalExceptionHandlerTest extends TestCase
 
     public function test_it_handles_method_not_allowed_exceptions()
     {
-        $response = $this->putJson('/api/audio/upload');
+        $response = $this->putJson('/api/v1/audio-files');
 
         $response->assertStatus(ResponseCodes::METHOD_NOT_ALLOWED)
             ->assertJson([

@@ -1,7 +1,7 @@
 import ToastService from "@/lib/services/toastService";
 import { api } from "@/sdk/api";
 import React, { useRef, useState } from "react";
-import { useAudio } from "../contexts/AudioContext";
+import { useAudio } from "../hooks";
 import { useChunkedUpload } from "../hooks/useChunkedUpload";
 import { useStrictModeMountEffect } from "../hooks/useStrictModeEffect";
 import { UploadConfig } from "../types/audio";
@@ -35,6 +35,7 @@ const AudioUpload: React.FC = () => {
     },
     onError: (error) => {
       setError(error.message);
+      console.log("Chunked upload failed with progress:", uploadProgress);
       ToastService.error("Upload Failed", error.message);
     },
   });

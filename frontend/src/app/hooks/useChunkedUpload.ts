@@ -52,8 +52,8 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     maxChunks = 50, // Limit total chunks to prevent too many requests
     minChunkSize = 1 * 1024 * 1024, // 1MB minimum
     maxChunkSize = 50 * 1024 * 1024, // 50MB maximum
-    enableParallelUploads = false,
-    maxParallelChunks = 3,
+    enableParallelUploads: _ENABLE_PARALLEL_UPLOADS = false,
+    maxParallelChunks: _MAX_PARALLEL_CHUNKS = 3,
   } = options;
 
   const [isUploading, setIsUploading] = useState(false);
@@ -64,77 +64,83 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
   const [startTime, setStartTime] = useState<number>(0);
 
   // Dynamic chunk size calculation based on file size
-  const calculateOptimalChunkSize = (fileSize: number): number => {
-    if (fixedChunkSize) return fixedChunkSize;
+  const calculateOptimalChunkSize = useCallback(
+    (fileSize: number): number => {
+      if (fixedChunkSize) return fixedChunkSize;
 
-    // Calculate chunk size to stay within maxChunks limit
-    let optimalSize = Math.ceil(fileSize / maxChunks);
+      // Calculate chunk size to stay within maxChunks limit
+      let optimalSize = Math.ceil(fileSize / maxChunks);
 
-    // Ensure chunk size is within bounds
-    optimalSize = Math.max(minChunkSize, Math.min(maxChunkSize, optimalSize));
+      // Ensure chunk size is within bounds
+      optimalSize = Math.max(minChunkSize, Math.min(maxChunkSize, optimalSize));
 
-    // Round to nearest MB for cleaner chunks
-    optimalSize = Math.ceil(optimalSize / (1024 * 1024)) * 1024 * 1024;
+      // Round to nearest MB for cleaner chunks
+      optimalSize = Math.ceil(optimalSize / (1024 * 1024)) * 1024 * 1024;
 
-    console.log(
-      `Dynamic chunk size for ${Math.round(
-        fileSize / 1024 / 1024
-      )}MB file: ${Math.round(optimalSize / 1024 / 1024)}MB (${Math.ceil(
-        fileSize / optimalSize
-      )} chunks)`
-    );
+      console.log(
+        `Dynamic chunk size for ${Math.round(
+          fileSize / 1024 / 1024
+        )}MB file: ${Math.round(optimalSize / 1024 / 1024)}MB (${Math.ceil(
+          fileSize / optimalSize
+        )} chunks)`
+      );
 
-    return optimalSize;
-  };
+      return optimalSize;
+    },
+    [fixedChunkSize, maxChunks, minChunkSize, maxChunkSize]
+  );
 
   const sleep = (ms: number) =>
     new Promise((resolve) => setTimeout(resolve, ms));
 
-  const uploadChunkWithRetry = async (
-    uploadId: string,
-    chunkIndex: number,
-    chunk: Blob,
-    totalChunks: number,
-    retries = 0
-  ): Promise<any> => {
-    try {
-      const response = await api.audioFiles.uploadChunk({
-        uploadId,
-        chunkIndex,
-        chunk,
-        totalChunks,
-      });
-
-      if (response.success) {
-        return response.data;
-      } else {
-        throw new Error(
-          `Upload failed: ${response.message || "Unknown error"}`
-        );
-      }
-    } catch (error) {
-      if (retries < maxRetries) {
-        const delay = retryDelay * Math.pow(2, retries); // Exponential backoff
-        console.warn(
-          `Chunk ${chunkIndex} failed, retrying in ${delay}ms... (${
-            retries + 1
-          }/${maxRetries})`
-        );
-        await sleep(delay);
-        return uploadChunkWithRetry(
+  const uploadChunkWithRetry = useCallback(
+    async (
+      uploadId: string,
+      chunkIndex: number,
+      chunk: Blob,
+      totalChunks: number,
+      retries = 0
+    ): Promise<any> => {
+      try {
+        const response = await api.audioFiles.uploadChunk({
           uploadId,
           chunkIndex,
           chunk,
           totalChunks,
-          retries + 1
-        );
-      } else {
-        throw new Error(
-          `Chunk ${chunkIndex} failed after ${maxRetries} retries: ${error}`
-        );
+        });
+
+        if (response.success) {
+          return response.data;
+        } else {
+          throw new Error(
+            `Upload failed: ${response.message || "Unknown error"}`
+          );
+        }
+      } catch (error) {
+        if (retries < maxRetries) {
+          const delay = retryDelay * Math.pow(2, retries); // Exponential backoff
+          console.warn(
+            `Chunk ${chunkIndex} failed, retrying in ${delay}ms... (${
+              retries + 1
+            }/${maxRetries})`
+          );
+          await sleep(delay);
+          return uploadChunkWithRetry(
+            uploadId,
+            chunkIndex,
+            chunk,
+            totalChunks,
+            retries + 1
+          );
+        } else {
+          throw new Error(
+            `Chunk ${chunkIndex} failed after ${maxRetries} retries: ${error}`
+          );
+        }
       }
-    }
-  };
+    },
+    [maxRetries, retryDelay]
+  );
 
   const uploadFile = useCallback(
     async (file: File, filename?: string): Promise<any> => {
@@ -276,6 +282,8 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       onError,
       onComplete,
       isUploading,
+      startTime,
+      uploadChunkWithRetry,
     ]
   );
 
