@@ -49,7 +49,6 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "start": "npm run build && npm run dev",
-    "generate-api": "node generate-api.js",
     "gen-proxy": "./gen-proxy.sh"
   },
   "eslintConfig": {
