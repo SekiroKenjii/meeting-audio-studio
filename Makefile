@@ -48,6 +48,19 @@ help:
 	@echo "  make queue-work   - Run queue worker manually"
 	@echo "  make queue-status - Check queue job count"
 	@echo "  make queue-clear  - Clear failed jobs"
+	@echo ""
+	@echo "Testing & CI/CD:"
+	@echo "  make test              - Interactive testing menu"
+	@echo "  make test-frontend     - Test frontend locally"
+	@echo "  make test-backend      - Test backend locally"
+	@echo "  make test-docker       - Test Docker builds"
+	@echo "  make test-security     - Run security scan"
+	@echo "  make test-integration  - Run integration tests"
+	@echo "  make test-all          - Run all tests"
+	@echo "  make test-act          - Run GitHub Actions locally (all jobs)"
+	@echo "  make test-act-frontend - Run frontend job with act"
+	@echo "  make test-act-backend  - Run backend job with act"
+	@echo "  make validate-setup    - Validate CI/CD setup"
 	@echo "  make ws-test      - Test WebSocket connection"
 	@echo ""
 	@echo "Maintenance:"
@@ -274,6 +287,52 @@ storage-permissions:
 	@echo "Setting storage permissions..."
 	docker exec -it $(BACKEND_CONTAINER) chmod -R 755 storage
 	docker exec -it $(BACKEND_CONTAINER) chown -R www-data:www-data storage
+
+# Testing and CI/CD
+.PHONY: test test-frontend test-backend test-docker test-security test-integration test-all test-act
+test:
+	@echo "Running local CI/CD tests..."
+	./scripts/test-ci-local.sh
+
+test-frontend:
+	@echo "Testing frontend locally..."
+	./scripts/test-ci-local.sh frontend
+
+test-backend:
+	@echo "Testing backend locally..."
+	./scripts/test-ci-local.sh backend
+
+test-docker:
+	@echo "Testing Docker builds..."
+	./scripts/test-ci-local.sh docker
+
+test-security:
+	@echo "Running security scan..."
+	./scripts/test-ci-local.sh security
+
+test-integration:
+	@echo "Running integration tests..."
+	./scripts/test-ci-local.sh integration
+
+test-all:
+	@echo "Running all tests..."
+	./scripts/test-ci-local.sh all
+
+test-act:
+	@echo "Running GitHub Actions locally with act..."
+	./scripts/test-ci-local.sh act
+
+test-act-frontend:
+	@echo "Running frontend job with act..."
+	./scripts/test-ci-local.sh act frontend
+
+test-act-backend:
+	@echo "Running backend job with act..."
+	./scripts/test-ci-local.sh act backend
+
+validate-setup:
+	@echo "Validating CI/CD setup..."
+	./scripts/validate-ci-setup.sh
 
 # Default target
 .DEFAULT_GOAL := help

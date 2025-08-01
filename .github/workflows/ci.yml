@@ -107,8 +107,8 @@ jobs:
         key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
         restore-keys: ${{ runner.os }}-composer-
 
-    - name: Install Composer dependencies
-      run: composer install --no-progress --prefer-dist --optimize-autoloader --no-dev
+    - name: Install Composer dependencies (with dev for testing)
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
 
     - name: Copy environment file
       run: cp .env.example .env
@@ -138,8 +138,22 @@ jobs:
         DB_USERNAME: postgres
         DB_PASSWORD: postgres
 
-    - name: Run PHPUnit tests
-      run: php artisan test --parallel --processes=4
+    - name: Run tests
+      run: |
+        # Try artisan test first, fallback to PHPUnit directly
+        if php artisan test --help >/dev/null 2>&1; then
+          php artisan test
+        else
+          echo "Using PHPUnit directly..."
+          ./vendor/bin/phpunit
+        fi
+      env:
+        DB_CONNECTION: pgsql
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_DATABASE: testing
+        DB_USERNAME: postgres
+        DB_PASSWORD: postgres
 
     # Remove coverage upload for faster execution - enable only when needed
     # - name: Upload coverage reports

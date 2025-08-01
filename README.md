@@ -352,6 +352,43 @@ meeting-audio-studio/
 - **Database Optimization**: Read replicas and connection pooling
 - **Monitoring**: Application performance monitoring and logging
 
+## Testing
+
+This project includes comprehensive local testing capabilities that mirror the GitHub Actions CI/CD pipeline.
+
+### Quick Testing
+```bash
+# Validate setup
+make validate-setup
+
+# Interactive testing menu
+make test
+
+# Test specific components
+make test-frontend     # React, TypeScript, ESLint, Vitest
+make test-backend      # PHP, Laravel tests, Composer
+make test-docker       # Container builds
+make test-security     # Trivy vulnerability scan
+make test-integration  # Full stack integration
+
+# Run all tests
+make test-all
+
+# GitHub Actions simulation
+make test-act
+```
+
+### Manual Testing
+```bash
+# Direct script usage
+./scripts/test-ci-local.sh                    # Interactive menu
+./scripts/test-ci-local.sh frontend           # Frontend only
+./scripts/test-ci-local.sh all                # All tests
+./scripts/test-ci-local.sh act frontend       # Act simulation
+```
+
+For detailed testing documentation, see [LOCAL_TESTING.md](LOCAL_TESTING.md) and [scripts/README.md](scripts/README.md).
+
 ## 🤝 Contributing
 
 1. Fork the repository

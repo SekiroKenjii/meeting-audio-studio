@@ -1,0 +1,10 @@
+# Act configuration file
+# This tells act which Docker images to use for different runner types
+
+# Use GitHub's official runner images
+-P ubuntu-latest=ghcr.io/catthehacker/ubuntu:act-latest
+-P ubuntu-22.04=ghcr.io/catthehacker/ubuntu:act-22.04
+-P ubuntu-20.04=ghcr.io/catthehacker/ubuntu:act-20.04
+
+# Set default environment variables
+--env-file .env.act
