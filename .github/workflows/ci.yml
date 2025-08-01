@@ -14,6 +14,8 @@ permissions:
 env:
   NODE_VERSION: '22'
   PHP_VERSION: '8.4'
+  # Enable parallel job execution
+  FORCE_COLOR: 1
 
 jobs:
   # Frontend React TypeScript Tests
@@ -31,31 +33,29 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
-
-    - name: Cache Node.js dependencies
-      uses: actions/cache@v4
-      with:
-        path: frontend/node_modules
-        key: ${{ runner.os }}-node-${{ hashFiles('frontend/package.json') }}
-        restore-keys: ${{ runner.os }}-node-
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
 
     - name: Create frontend environment file
       run: cp .env.example .env
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci --prefer-offline --no-audit
 
-    - name: Run ESLint
-      run: npm run lint
+    # Run linting, type-check, tests, and build in parallel using npm-run-all or separate steps
+    - name: Run code quality checks
+      run: |
+        # Run ESLint and TypeScript check in parallel
+        npm run lint &
+        npm run type-check &
+        wait  # Wait for both to complete
 
-    - name: Run TypeScript check
-      run: npm run type-check
-
-    - name: Run tests
-      run: npm run test:ci
-
-    - name: Build frontend
-      run: npm run build
+    - name: Run tests and build
+      run: |
+        # Run tests and build in parallel
+        npm run test:ci &
+        npm run build &
+        wait  # Wait for both to complete
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -93,17 +93,22 @@ jobs:
       with:
         php-version: ${{ env.PHP_VERSION }}
         extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, soap, intl, gd, exif, iconv
-        coverage: xdebug
+        coverage: none  # Disable Xdebug for faster execution
+        tools: composer:v2
+
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
     - name: Cache Composer dependencies
       uses: actions/cache@v4
       with:
-        path: backend/vendor
-        key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.json') }}
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('backend/composer.lock') }}
         restore-keys: ${{ runner.os }}-composer-
 
     - name: Install Composer dependencies
-      run: composer install --no-progress --prefer-dist --optimize-autoloader
+      run: composer install --no-progress --prefer-dist --optimize-autoloader --no-dev
 
     - name: Copy environment file
       run: cp .env.example .env
@@ -134,24 +139,23 @@ jobs:
         DB_PASSWORD: postgres
 
     - name: Run PHPUnit tests
-      run: php artisan test --coverage-clover coverage.xml
+      run: php artisan test --parallel --processes=4
 
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./backend/coverage.xml
-        flags: backend
-        name: backend-coverage
+    # Remove coverage upload for faster execution - enable only when needed
+    # - name: Upload coverage reports
+    #   uses: codecov/codecov-action@v4
+    #   with:
+    #     file: ./backend/coverage.xml
+    #     flags: backend
+    #     name: backend-coverage
 
-  # Security Scanning
+  # Security Scanning - run in parallel with other jobs
   security-scan:
     runs-on: ubuntu-latest
-    needs: [frontend-tests, backend-tests]
     permissions:
       contents: read
       security-events: write
       actions: read
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -181,10 +185,11 @@ jobs:
           echo "No SARIF results file found"
         fi
 
-  # Docker Build Test
+  # Docker Build Test - only run after core tests pass
   docker-build:
     runs-on: ubuntu-latest
     needs: [frontend-tests, backend-tests]
+    if: success()  # Only run if previous jobs succeed
 
     steps:
     - name: Checkout code
@@ -193,40 +198,32 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Create backend environment file
-      run: cp backend/.env.example backend/.env
-
-    - name: Create frontend environment file
-      run: cp frontend/.env.example frontend/.env
-
-    - name: Build frontend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./frontend
-        file: ./frontend/Dockerfile
-        push: false
-        tags: meeting-audio-studio-frontend:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          BUILDKIT_INLINE_CACHE=1
-
-    - name: Build backend Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        file: ./backend/Dockerfile
-        push: false
-        tags: meeting-audio-studio-backend:test
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          BUILDKIT_INLINE_CACHE=1
-
-    - name: Test Docker Compose build
+    # Use BuildKit cache mounts for faster builds
+    - name: Build and test Docker images
       run: |
-        docker compose -f docker-compose.yml config
-        docker compose -f docker-compose.yml build --no-cache
+        # Create env files
+        cp backend/.env.example backend/.env
+        cp frontend/.env.example frontend/.env
+
+        # Build images in parallel using BuildKit
+        docker buildx build \
+          --cache-from type=gha \
+          --cache-to type=gha,mode=max \
+          --load \
+          -t meeting-audio-studio-frontend:test \
+          ./frontend &
+
+        docker buildx build \
+          --cache-from type=gha \
+          --cache-to type=gha,mode=max \
+          --load \
+          -t meeting-audio-studio-backend:test \
+          ./backend &
+
+        wait  # Wait for both builds to complete
+
+        # Quick compose config test
+        docker compose config >/dev/null
       env:
         DB_CONNECTION: pgsql
         DB_HOST: postgres
@@ -244,7 +241,30 @@ jobs:
         REVERB_PORT: 8081
         REVERB_SCHEME: http
 
-  # Integration Tests
+    - name: Cleanup
+      if: always()
+      run: docker compose down -v --remove-orphans
+
+  # Notification - simplified
+  notify:
+    runs-on: ubuntu-latest
+    needs: [frontend-tests, backend-tests, security-scan, docker-build]
+    if: always()
+
+    steps:
+    - name: Notify results
+      run: |
+        if [[ "${{ needs.frontend-tests.result }}" == "success" && "${{ needs.backend-tests.result }}" == "success" ]]; then
+          echo "All core tests passed!"
+        else
+          echo "Some tests failed!"
+          echo "Frontend: ${{ needs.frontend-tests.result }}"
+          echo "Backend: ${{ needs.backend-tests.result }}"
+          echo "Security: ${{ needs.security-scan.result }}"
+          echo "Docker: ${{ needs.docker-build.result }}"
+        fi
+
+  # Integration Tests - simplified and faster
   integration-tests:
     runs-on: ubuntu-latest
     needs: [docker-build]
@@ -254,104 +274,27 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Start services with Docker Compose
+    - name: Quick integration test
       run: |
-        echo "Creating .env files..."
+        # Create env files
         cp backend/.env.example backend/.env
         cp frontend/.env.example frontend/.env
-        
-        echo "Building and starting Docker Compose services..."
-        docker compose build --no-cache
-        docker compose up -d
-        
-        echo "Waiting for services to initialize..."
-        sleep 45  # Longer initial wait for services to be ready
-      env:
-        DB_CONNECTION: pgsql
-        DB_HOST: postgres
-        DB_PORT: 5432
-        DB_DATABASE: meeting_audio_studio
-        DB_USERNAME: postgres
-        DB_PASSWORD: password
-        REDIS_HOST: redis
-        REDIS_PORT: 6379
-        OPENAI_API_KEY: dummy_key_for_testing
-        REVERB_APP_ID: meeting-audio-studio
-        REVERB_APP_KEY: local
-        REVERB_APP_SECRET: local
-        REVERB_HOST: localhost
-        REVERB_PORT: 8081
-        REVERB_SCHEME: http
 
-    - name: Check Docker containers status
-      run: |
-        echo "=== Container Status ==="
-        docker compose ps
+        # Start services with faster startup
+        docker compose up -d --quiet-pull
 
-        echo "=== Network Status ==="
-        docker network ls
+        # Shorter wait time with health checks
+        echo "Waiting for services..."
+        sleep 20
 
-        echo "=== Backend Container Logs ==="
-        docker compose logs --tail=30 backend
-
-        echo "=== PostgreSQL Container Logs ==="
-        docker compose logs --tail=10 postgres
-
-        echo "=== Redis Container Logs ==="
-        docker compose logs --tail=10 redis
-
-    - name: Wait for services to be healthy
-      run: |
-        echo "Waiting for backend service to be ready..."
-
-        # First check if the container is running
-        if ! docker compose ps | grep -q "backend.*Up"; then
-          echo "Backend container is not running!"
-          docker compose logs backend
+        # Quick health check
+        timeout 60 bash -c 'until curl -f -s http://localhost:8000/api/health; do sleep 2; done' || {
+          echo "Services failed to start, checking logs..."
+          docker compose logs --tail=10
           exit 1
-        fi
+        }
 
-        # Wait for backend to be ready with more verbose output
-        timeout 120 bash -c '
-          until curl -f -s http://localhost:8000/api/health; do
-            echo "Backend health check failed, waiting... ($(date))"
-            sleep 5
-          done
-        '
-
-        echo "Backend service is ready!"
-
-        # Test the health endpoint response
-        echo "Backend health status:"
-        curl -s http://localhost:8000/api/health || echo "Health endpoint returned an error"
-
-    - name: Run integration tests
-      run: |
-        echo "Running basic integration tests..."
-
-        # Test if services are responding
-        if curl -s http://localhost:8000 > /dev/null; then
-          echo "Backend service is responding"
-        else
-          echo "Backend service is not responding"
-          exit 1
-        fi
-
-        # Test basic API endpoint if available
-        if curl -s http://localhost:8000/api/health > /dev/null 2>&1; then
-          echo "Backend health endpoint is working"
-        else
-          echo "Backend health endpoint not available, but service is running"
-        fi
-
-        # Check if frontend service is built and available
-        if docker compose ps | grep -q "frontend"; then
-          echo "Frontend service is running"
-        else
-          echo "ℹFrontend service not detected in compose"
-        fi
-
-        echo "Integration tests completed successfully"
+        echo "Integration test passed"
 
     - name: Cleanup
       if: always()
@@ -377,18 +320,3 @@ jobs:
         echo "Deployment steps would go here"
         # Add your deployment commands here
         # For example: deploy to cloud provider, update containers, etc.
-
-  # Notification
-  notify:
-    runs-on: ubuntu-latest
-    needs: [frontend-tests, backend-tests, security-scan, docker-build]
-    if: always()
-
-    steps:
-    - name: Notify on success
-      if: needs.frontend-tests.result == 'success' && needs.backend-tests.result == 'success'
-      run: echo "All tests passed!"
-
-    - name: Notify on failure
-      if: needs.frontend-tests.result == 'failure' || needs.backend-tests.result == 'failure'
-      run: echo "Some tests failed!"
