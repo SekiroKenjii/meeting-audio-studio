@@ -259,10 +259,11 @@ jobs:
         echo "Creating .env files..."
         cp backend/.env.example backend/.env
         cp frontend/.env.example frontend/.env
-
-        echo "Starting Docker Compose services..."
+        
+        echo "Building and starting Docker Compose services..."
+        docker compose build --no-cache
         docker compose up -d
-
+        
         echo "Waiting for services to initialize..."
         sleep 45  # Longer initial wait for services to be ready
       env:
@@ -361,7 +362,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: [integration-tests]
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    environment: production
 
     steps:
     - name: Checkout code

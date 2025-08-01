@@ -54,8 +54,11 @@ services:
       - REVERB_PORT=${REVERB_PORT}
       - REVERB_SCHEME=${REVERB_SCHEME}
     volumes:
-      - ./backend:/var/www/html
+      # Don't mount the entire backend directory to preserve vendor/ from Docker build
+      # Only mount specific directories that need to be persistent or accessible
       - backend_storage:/var/www/html/storage
+      # Mount .env file for configuration
+      - ./backend/.env:/var/www/html/.env:ro
     depends_on:
       - postgres
       - redis
