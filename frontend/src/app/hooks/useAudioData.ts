@@ -17,20 +17,19 @@ export const useAudioData = () => {
 
   const loadAudioFiles = async () => {
     try {
-      const response = await api.audioFiles.index();
+      const request = api.audioFiles.index();
+      request.catch((_) => {
+        ToastService.error(
+          "Failed to load audio files",
+          "Please try refreshing the page or contact support if the problem persists."
+        );
+        setError("Failed to load audio files");
+      });
+      const response = await request;
 
       if (response.success && response.data) {
-        console.log("Audio files loaded:", response.data);
         setAudioFiles(response.data);
       }
-    } catch (error) {
-      console.error("Failed to load audio files:", error);
-      // Use ToastService instead of setError for better UX
-      ToastService.error(
-        "Failed to load audio files",
-        "Please try refreshing the page or contact support if the problem persists."
-      );
-      setError("Failed to load audio files");
     } finally {
       setIsLoading(false);
     }

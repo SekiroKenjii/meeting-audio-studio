@@ -1,7 +1,8 @@
+import { Layers } from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
-import { Layers } from "lucide-react";
 import DemoBanner from "../components/DemoBanner";
+import { ROUTES } from "../constants/routes";
 
 const LandingPage: React.FC = () => {
   return (
@@ -26,7 +27,7 @@ const LandingPage: React.FC = () => {
 
             <nav className="hidden md:flex space-x-8">
               <Link
-                to="/dashboard"
+                to={ROUTES.DASHBOARD}
                 className="text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors"
               >
                 Dashboard
@@ -67,7 +68,7 @@ const LandingPage: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
-              to="/dashboard"
+              to={ROUTES.DASHBOARD}
               className="btn btn-primary px-8 py-3 text-base font-medium"
             >
               Get Started Free
@@ -265,7 +266,7 @@ const LandingPage: React.FC = () => {
             today.
           </p>
           <Link
-            to="/dashboard"
+            to={ROUTES.DASHBOARD}
             className="inline-flex items-center px-8 py-3 bg-white text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition-colors"
           >
             Get Started Now
@@ -328,7 +329,7 @@ const LandingPage: React.FC = () => {
               </h4>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>
-                  <Link to="/dashboard" className="hover:text-gray-900">
+                  <Link to={ROUTES.DASHBOARD} className="hover:text-gray-900">
                     Dashboard
                   </Link>
                 </li>

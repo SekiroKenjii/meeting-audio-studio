@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { ROUTES } from "../constants/routes";
 import { useSidebar } from "../hooks";
 
 const Sidebar: React.FC = () => {
@@ -23,22 +24,22 @@ const Sidebar: React.FC = () => {
   const navigation = [
     {
       name: "Overview",
-      href: "/dashboard",
+      href: ROUTES.DASHBOARD,
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
       name: "Audio Files",
-      href: "/dashboard/files",
+      href: ROUTES.DASHBOARD_FILES,
       icon: <AudioLines className="w-5 h-5" />,
     },
     {
       name: "Transcripts",
-      href: "/dashboard/transcripts",
+      href: ROUTES.DASHBOARD_TRANSCRIPTS,
       icon: <FileText className="w-5 h-5" />,
     },
     {
       name: "Analytics",
-      href: "/dashboard/analytics",
+      href: ROUTES.DASHBOARD_ANALYTICS,
       icon: <BarChart3 className="w-5 h-5" />,
     },
   ];
@@ -46,19 +47,19 @@ const Sidebar: React.FC = () => {
   const userMenuItems = [
     {
       name: "Settings",
-      href: "/dashboard/settings",
+      href: ROUTES.DASHBOARD_SETTINGS,
       icon: <Settings className="w-5 h-5" />,
     },
     {
       name: "Help & Support",
-      href: "/dashboard/support",
+      href: ROUTES.DASHBOARD_SUPPORT,
       icon: <HelpCircle className="w-5 h-5" />,
     },
   ];
 
   const isActiveLink = (href: string) => {
-    if (href === "/dashboard") {
-      return location.pathname === "/dashboard";
+    if (href === ROUTES.DASHBOARD) {
+      return location.pathname === ROUTES.DASHBOARD;
     }
     return location.pathname.startsWith(href);
   };
@@ -103,6 +104,40 @@ const Sidebar: React.FC = () => {
         <nav
           className={`py-6 space-y-1 ${isCollapsed ? "px-2" : "px-2 lg:px-4"}`}
         >
+          {/* Back to Home Button */}
+          <div className="pb-4 border-b border-gray-200 mb-4">
+            <Link
+              to={ROUTES.LANDING}
+              className={`group flex items-center text-sm font-medium rounded-lg transition-colors ${
+                isCollapsed ? "px-2 py-2 justify-center" : "px-3 py-2"
+              } text-gray-600 hover:bg-gray-50 hover:text-gray-900`}
+              title="Back to Home" // Tooltip for collapsed view
+            >
+              <span
+                className={`text-gray-400 group-hover:text-gray-600 ${
+                  isCollapsed ? "" : "lg:mr-3"
+                }`}
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+              </span>
+              <span className={`${isCollapsed ? "hidden" : "hidden lg:block"}`}>
+                Back to Home
+              </span>
+            </Link>
+          </div>
+
           <div className="space-y-1">
             {navigation.map((item) => {
               const isActive = isActiveLink(item.href);

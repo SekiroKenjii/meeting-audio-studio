@@ -2,6 +2,7 @@ import ToastContainer from "@/lib/components/ToastContainer";
 import ToastInitializer from "@/lib/components/ToastInitializer";
 import { ToastProvider } from "@/lib/context/ToastContext";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { ROUTES } from "./constants/routes";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import DashboardLayout from "./layouts/DashboardLayout";
 import ApiDebugPage from "./pages/ApiDebugPage";
@@ -12,7 +13,7 @@ import LandingPage from "./pages/LandingPage";
 
 function App() {
   // Get the base URL for GitHub Pages deployment
-  const basename = import.meta.env.VITE_BASE_URL?.replace(/\/$/, '') || "";
+  const basename = import.meta.env.VITE_BASE_URL?.replace(/\/$/, "") || "";
 
   return (
     <ToastProvider>
@@ -26,17 +27,17 @@ function App() {
       >
         <Routes>
           {/* Landing Page */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path={ROUTES.LANDING} element={<LandingPage />} />
 
           {/* Error Page */}
-          <Route path="/error" element={<ErrorPage />} />
+          <Route path={ROUTES.ERROR} element={<ErrorPage />} />
 
           {/* Debug Page (development only) */}
-          <Route path="/debug" element={<ApiDebugPage />} />
+          <Route path={ROUTES.DEBUG} element={<ApiDebugPage />} />
 
           {/* Dashboard Routes with Sidebar Context */}
           <Route
-            path="/dashboard"
+            path={ROUTES.DASHBOARD}
             element={
               <SidebarProvider>
                 <DashboardLayout>
@@ -46,7 +47,7 @@ function App() {
             }
           />
           <Route
-            path="/dashboard/files"
+            path={ROUTES.DASHBOARD_FILES}
             element={
               <SidebarProvider>
                 <DashboardLayout>
@@ -56,7 +57,7 @@ function App() {
             }
           />
           <Route
-            path="/dashboard/*"
+            path={ROUTES.DASHBOARD_CATCH_ALL}
             element={
               <SidebarProvider>
                 <DashboardLayout>

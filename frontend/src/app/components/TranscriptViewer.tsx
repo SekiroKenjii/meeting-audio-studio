@@ -27,15 +27,16 @@ const TranscriptViewer: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await api.audioFiles.getTranscriptByAudioFile(
+      const request = api.audioFiles.getTranscriptByAudioFile(
         selectedAudioFile.id
       );
+      request.catch((_) => {
+        setError("Failed to load transcript");
+      });
+      const response = await request;
       if (response.success && response.data) {
         setTranscript(response.data);
       }
-    } catch (error) {
-      console.error("Failed to load transcript:", error);
-      setError("Failed to load transcript");
     } finally {
       setIsLoading(false);
     }
@@ -49,10 +50,14 @@ const TranscriptViewer: React.FC = () => {
     setQueryResult(null);
 
     try {
-      const response = await api.transcripts.createTranscript(
+      const request = api.transcripts.createTranscript(
         transcript.id,
         query.trim()
       );
+      request.catch((_) => {
+        setError("Failed to process query");
+      });
+      const response = await request;
       if (response.success && response.data) {
         setQueryResult(response.data.response);
         // Update transcript with new query
@@ -61,9 +66,6 @@ const TranscriptViewer: React.FC = () => {
           queries: [...transcript.queries, response.data],
         });
       }
-    } catch (error) {
-      console.error("Failed to process query:", error);
-      setError("Failed to process query");
     } finally {
       setIsQuerying(false);
     }

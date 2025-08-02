@@ -1,11 +1,12 @@
 import ToastService from "@/lib/services/toastService";
 import { api } from "@/sdk/services";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAudio } from "../hooks";
 import { useChunkedUpload } from "../hooks/useChunkedUpload";
 import { useStrictModeMountEffect } from "../hooks/useStrictModeEffect";
 import { UploadConfig } from "../types/audio";
 import FilenameConfirmDialog from "./FilenameConfirmDialog";
+import { EVENTS } from "../constants/events";
 
 const AudioUpload: React.FC = () => {
   const { addAudioFile, setError } = useAudio();
@@ -21,9 +22,13 @@ const AudioUpload: React.FC = () => {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadProgressRef = useRef<number>(0);
+  const isUploadingRef = useRef<boolean>(false);
+  const uploadConfigRef = useRef<UploadConfig | null>(null);
 
-  // Update ref when uploadProgress changes
+  // Update refs when state changes
   uploadProgressRef.current = uploadProgress;
+  isUploadingRef.current = isUploading;
+  uploadConfigRef.current = uploadConfig;
 
   // Memoized callbacks for the chunked upload hook to prevent re-initialization
   const handleChunkedProgress = useCallback((progress: any) => {
@@ -63,7 +68,14 @@ const AudioUpload: React.FC = () => {
   useStrictModeMountEffect(() => {
     const fetchUploadConfig = async () => {
       try {
-        const response = await api.audioFiles.getUploadConfig();
+        const request = api.audioFiles.getUploadConfig();
+        request.catch((_) => {
+          ToastService.error(
+            "Configuration Error",
+            "Failed to load upload configuration"
+          );
+        });
+        const response = await request;
         if (response.success && response.data) {
           setUploadConfig(response.data);
         } else {
@@ -72,12 +84,6 @@ const AudioUpload: React.FC = () => {
             "Failed to load upload configuration"
           );
         }
-      } catch (error) {
-        console.error("Error fetching upload config:", error);
-        ToastService.error(
-          "Configuration Error",
-          "Failed to load upload configuration"
-        );
       } finally {
         setIsLoadingConfig(false);
       }
@@ -85,6 +91,28 @@ const AudioUpload: React.FC = () => {
 
     fetchUploadConfig();
   });
+
+  // Separate effect for event listener that only runs once on mount
+  useEffect(() => {
+    const handleUploadTrigger = () => {
+      if (!isUploadingRef.current && uploadConfigRef.current) {
+        fileInputRef.current?.click();
+      } else {
+        console.log(
+          "AudioUpload: cannot trigger upload - uploading or no config"
+        );
+      }
+    };
+
+    window.addEventListener(EVENTS.TRIGGER_FILE_UPLOAD, handleUploadTrigger);
+
+    return () => {
+      window.removeEventListener(
+        EVENTS.TRIGGER_FILE_UPLOAD,
+        handleUploadTrigger
+      );
+    };
+  }, []);
 
   const validateFile = (file: File): string | null => {
     if (!uploadConfig) {

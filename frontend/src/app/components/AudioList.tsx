@@ -1,4 +1,5 @@
 import React from "react";
+import { ROUTES } from "../constants/routes";
 import { useAudio } from "../hooks";
 import { useAudioData } from "../hooks/useAudioData";
 import { AudioFile } from "../types/audio";
@@ -199,7 +200,7 @@ const AudioList: React.FC<AudioListProps> = ({ showAll = false }) => {
       {!showAll && audioFiles.length > 3 && (
         <div className="text-center pt-3">
           <a
-            href="/dashboard/files"
+            href={ROUTES.DASHBOARD_FILES}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center space-x-1"
           >
             <span>View all {audioFiles.length} files</span>

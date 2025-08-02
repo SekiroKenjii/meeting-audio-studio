@@ -386,19 +386,18 @@ export const setupDefaultInterceptors = () => {
       data: error.data,
     });
 
-    // Handle different error cases based on requirements
     if (error.status) {
       // Network errors and server errors (500+) -> redirect to error page
       if (shouldRedirectToErrorPage(error.status)) {
         redirectToErrorPage(error);
-        // Still throw the error after redirecting
+
         throw error;
       }
 
       // Authentication/Authorization errors (401, 403) -> ignore for now
       if (error.status === 401 || error.status === 403) {
         console.log("Auth error ignored (to be implemented):", error.status);
-        // Just throw without showing toast - will be handled when auth is implemented
+
         throw error;
       }
 
