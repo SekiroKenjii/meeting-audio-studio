@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import DemoBanner from "../components/DemoBanner";
 import Sidebar from "../components/Sidebar";
 import { useSidebar } from "../hooks";
 
@@ -95,6 +96,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             </div>
           </div>
         </header>
+
+        {/* Demo Banner */}
+        <div className="px-6">
+          <DemoBanner />
+        </div>
 
         {/* Page Content */}
         <main className="flex-1 p-6">{children}</main>
