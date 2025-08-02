@@ -72,10 +72,7 @@ jobs:
       run: npm run test:ci
 
     - name: Build for production
-      run: npm run build
-      env:
-        NODE_ENV: production
-        GITHUB_PAGES: true
+      run: npm run build:gh-pages
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
