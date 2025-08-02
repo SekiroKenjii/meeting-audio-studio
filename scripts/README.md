@@ -2,6 +2,30 @@
 
 This directory contains utility scripts for the Meeting Audio Studio project.
 
+## Development & Maintenance Scripts
+
+### `fix-docker-composer.sh`
+**Purpose**: Fix Docker Composer package installation and autoloader issues
+**Usage**:
+- Full fix: `./scripts/fix-docker-composer.sh`
+- Faker only: `./scripts/fix-docker-composer.sh --faker-only`
+- Autoloader only: `./scripts/fix-docker-composer.sh --autoloader-only`
+- Permissions only: `./scripts/fix-docker-composer.sh --permissions-only`
+- Validate only: `./scripts/fix-docker-composer.sh --validate-only`
+- Help: `./scripts/fix-docker-composer.sh --help`
+
+**Common Issues Fixed**:
+- Faker\Factory class not found errors
+- Composer autoloader issues
+- Package installation problems in Docker containers
+- Permission issues with storage and cache directories
+
+**When to Use**:
+- When you get "Class not found" errors during seeding
+- After major package updates
+- When migrations or artisan commands fail with autoloader errors
+- When setting up the project for the first time
+
 ## Testing Scripts
 
 ### `test-ci-local.sh`
