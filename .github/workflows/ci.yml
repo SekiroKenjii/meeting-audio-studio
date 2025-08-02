@@ -268,15 +268,25 @@ jobs:
     steps:
     - name: Notify results
       run: |
-        if [[ "${{ needs.frontend-tests.result }}" == "success" && "${{ needs.backend-tests.result }}" == "success" ]]; then
-          echo "All core tests passed!"
+        # Check if Docker build was skipped (hotfix branch)
+        if [[ "${{ startsWith(github.ref_name, 'hotfix/') }}" == "true" ]]; then
+          echo "Hotfix branch - Docker build skipped"
+          if [[ "${{ needs.frontend-tests.result }}" == "success" && "${{ needs.backend-tests.result }}" == "success" ]]; then
+            echo "All required tests passed for hotfix!"
+          else
+            echo "Some tests failed!"
+          fi
         else
-          echo "Some tests failed!"
-          echo "Frontend: ${{ needs.frontend-tests.result }}"
-          echo "Backend: ${{ needs.backend-tests.result }}"
-          echo "Security: ${{ needs.security-scan.result }}"
-          echo "Docker: ${{ needs.docker-build.result }}"
+          if [[ "${{ needs.frontend-tests.result }}" == "success" && "${{ needs.backend-tests.result }}" == "success" && "${{ needs.docker-build.result }}" == "success" ]]; then
+            echo "All tests passed!"
+          else
+            echo "Some tests failed!"
+          fi
         fi
+        echo "Frontend: ${{ needs.frontend-tests.result }}"
+        echo "Backend: ${{ needs.backend-tests.result }}"
+        echo "Security: ${{ needs.security-scan.result }}"
+        echo "Docker: ${{ needs.docker-build.result }}"
 
   # Integration Tests - simplified and faster
   integration-tests:
