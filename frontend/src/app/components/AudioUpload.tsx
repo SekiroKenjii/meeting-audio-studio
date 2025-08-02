@@ -19,14 +19,6 @@ const AudioUpload: React.FC = () => {
     "regular"
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadProgressRef = useRef<number>(0);
-  const isUploadingRef = useRef<boolean>(false);
-  const uploadConfigRef = useRef<UploadConfig | null>(null);
-
-  // Update refs when state changes
-  uploadProgressRef.current = uploadProgress;
-  isUploadingRef.current = isUploading;
-  uploadConfigRef.current = uploadConfig;
 
   // Memoized callbacks for the chunked upload hook to prevent re-initialization
   const handleChunkedProgress = useCallback((progress: any) => {
@@ -47,15 +39,12 @@ const AudioUpload: React.FC = () => {
   const handleChunkedError = useCallback(
     (error: any) => {
       setError(error.message);
-      console.log(
-        "Chunked upload failed with progress:",
-        uploadProgressRef.current
-      );
+      console.log("Chunked upload failed with progress:", uploadProgress);
 
       // Show error toast for actual errors (not cancellations)
       ToastService.error("Upload Failed", error.message);
     },
-    [setError]
+    [setError, uploadProgress]
   );
 
   const handleChunkedCancel = useCallback(() => {
@@ -106,7 +95,7 @@ const AudioUpload: React.FC = () => {
   // Separate effect for event listener that only runs once on mount
   useEffect(() => {
     const handleUploadTrigger = () => {
-      if (!isUploadingRef.current && uploadConfigRef.current) {
+      if (!isUploading && uploadConfig) {
         fileInputRef.current?.click();
       } else {
         console.log(
@@ -123,7 +112,7 @@ const AudioUpload: React.FC = () => {
         handleUploadTrigger
       );
     };
-  }, []);
+  }, [isUploading, uploadConfig]); // Add dependencies so the callback uses current values
 
   const validateFile = (file: File): string | null => {
     if (!uploadConfig) {

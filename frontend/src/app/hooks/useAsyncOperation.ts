@@ -73,14 +73,14 @@ export const useAsyncOperation = <T = any>(
 
         if (showErrorToast || overrideOptions?.showErrorToast !== false) {
           ToastService.error(
-            overrideOptions?.errorMessage || errorMessage,
+            overrideOptions?.errorMessage ?? errorMsg ?? errorMessage,
             overrideOptions?.errorDescription || errorDescription
           );
         }
 
         setState({
           isLoading: false,
-          error: overrideOptions?.errorMessage || errorMsg,
+          error: errorMsg ?? overrideOptions?.errorMessage ?? errorMessage,
         });
         return null;
       }
