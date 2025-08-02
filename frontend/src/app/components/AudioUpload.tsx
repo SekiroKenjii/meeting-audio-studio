@@ -1,12 +1,10 @@
 import ToastService from "@/lib/services/toastService";
 import { api } from "@/sdk/services";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useAudio } from "../hooks";
-import { useChunkedUpload } from "../hooks/useChunkedUpload";
-import { useStrictModeMountEffect } from "../hooks/useStrictModeEffect";
+import { EVENTS } from "../constants/events";
+import { useAudio, useChunkedUpload, useStrictModeMountEffect } from "../hooks";
 import { UploadConfig } from "../types/audio";
 import FilenameConfirmDialog from "./FilenameConfirmDialog";
-import { EVENTS } from "../constants/events";
 
 const AudioUpload: React.FC = () => {
   const { addAudioFile, setError } = useAudio();
@@ -68,14 +66,7 @@ const AudioUpload: React.FC = () => {
   useStrictModeMountEffect(() => {
     const fetchUploadConfig = async () => {
       try {
-        const request = api.audioFiles.getUploadConfig();
-        request.catch((_) => {
-          ToastService.error(
-            "Configuration Error",
-            "Failed to load upload configuration"
-          );
-        });
-        const response = await request;
+        const response = await api.audioFiles.getUploadConfig();
         if (response.success && response.data) {
           setUploadConfig(response.data);
         } else {
@@ -84,6 +75,12 @@ const AudioUpload: React.FC = () => {
             "Failed to load upload configuration"
           );
         }
+      } catch (error) {
+        console.error("Error fetching upload config:", error);
+        ToastService.error(
+          "Configuration Error",
+          "Failed to load upload configuration"
+        );
       } finally {
         setIsLoadingConfig(false);
       }
@@ -234,7 +231,6 @@ const AudioUpload: React.FC = () => {
       // Reset state on error for both upload types
       resetUploadState();
     }
-    // Remove the finally block since we handle cleanup in each path
   };
 
   const handleFilenameCancel = () => {

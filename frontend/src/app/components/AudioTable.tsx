@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { useAudio } from "../hooks";
-import { useAudioData } from "../hooks/useAudioData";
+import { useAudio, useAudioData } from "../hooks";
 import { AudioFile } from "../types/audio";
 import { getAudioStatusConfig } from "../utils/audioStatus";
 import {

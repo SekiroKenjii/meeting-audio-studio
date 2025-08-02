@@ -1,7 +1,6 @@
 import React from "react";
 import { ROUTES } from "../constants/routes";
-import { useAudio } from "../hooks";
-import { useAudioData } from "../hooks/useAudioData";
+import { useAudio, useAudioData } from "../hooks";
 import { AudioFile } from "../types/audio";
 import { getAudioStatusConfig } from "../utils/audioStatus";
 import {

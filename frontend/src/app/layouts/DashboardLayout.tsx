@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import DemoBanner from "../components/DemoBanner";
 import Sidebar from "../components/Sidebar";
 import { EVENTS } from "../constants/events";
@@ -13,6 +13,7 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { isCollapsed } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Function to trigger file upload
   const handleUploadClick = () => {
@@ -23,7 +24,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       const uploadEvent = new CustomEvent(EVENTS.TRIGGER_FILE_UPLOAD);
       window.dispatchEvent(uploadEvent);
     } else {
-      window.location.href = ROUTES.DASHBOARD_FILES;
+      navigate(ROUTES.DASHBOARD_FILES);
     }
   };
 

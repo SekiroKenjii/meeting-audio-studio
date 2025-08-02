@@ -1,7 +1,6 @@
-import { useState } from "react";
-import ToastService from "../../lib/services/toastService";
-import { api } from "../../sdk/services";
-import { useAudio } from "../hooks";
+import { apiService } from "@/lib/services/apiService";
+import { api } from "@/sdk/services";
+import { useAsyncOperation, useAudio } from "../hooks";
 import { useStrictModeMountEffect } from "./useStrictModeEffect";
 
 /**
@@ -9,30 +8,26 @@ import { useStrictModeMountEffect } from "./useStrictModeEffect";
  */
 export const useAudioData = () => {
   const { audioFiles, setAudioFiles, setError } = useAudio();
-  const [isLoading, setIsLoading] = useState(true);
+
+  const { isLoading, execute: executeAsync } = useAsyncOperation({
+    onSuccess: (data: any) => {
+      console.log("Audio files loaded:", data);
+      setAudioFiles(data);
+    },
+    onError: (_error) => {
+      setError("Failed to load audio files");
+    },
+    errorMessage: "Failed to load audio files",
+    errorDescription:
+      "Please try refreshing the page or contact support if the problem persists.",
+  });
 
   useStrictModeMountEffect(() => {
     loadAudioFiles();
   });
 
   const loadAudioFiles = async () => {
-    try {
-      const request = api.audioFiles.index();
-      request.catch((_) => {
-        ToastService.error(
-          "Failed to load audio files",
-          "Please try refreshing the page or contact support if the problem persists."
-        );
-        setError("Failed to load audio files");
-      });
-      const response = await request;
-
-      if (response.success && response.data) {
-        setAudioFiles(response.data);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    await executeAsync(() => apiService.handleResponse(api.audioFiles.index()));
   };
 
   return {
