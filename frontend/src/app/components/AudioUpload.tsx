@@ -1,6 +1,6 @@
 import ToastService from "@/lib/services/toastService";
 import { api } from "@/sdk/services";
-import React, { useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { useAudio } from "../hooks";
 import { useChunkedUpload } from "../hooks/useChunkedUpload";
 import { useStrictModeMountEffect } from "../hooks/useStrictModeEffect";
@@ -20,24 +20,44 @@ const AudioUpload: React.FC = () => {
     "regular"
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadProgressRef = useRef<number>(0);
 
-  // Chunked upload hook
-  const chunkedUpload = useChunkedUpload({
-    onProgress: (progress) => {
-      setUploadProgress(progress.percentage);
-    },
-    onComplete: (audioFile) => {
+  // Update ref when uploadProgress changes
+  uploadProgressRef.current = uploadProgress;
+
+  // Memoized callbacks for the chunked upload hook to prevent re-initialization
+  const handleChunkedProgress = useCallback((progress: any) => {
+    setUploadProgress(progress.percentage);
+  }, []);
+
+  const handleChunkedComplete = useCallback(
+    (audioFile: any) => {
       addAudioFile(audioFile);
       ToastService.success(
         "Upload Completed",
         `${audioFile.filename} has been uploaded and is being processed.`
       );
     },
-    onError: (error) => {
+    [addAudioFile]
+  );
+
+  const handleChunkedError = useCallback(
+    (error: any) => {
       setError(error.message);
-      console.log("Chunked upload failed with progress:", uploadProgress);
+      console.log(
+        "Chunked upload failed with progress:",
+        uploadProgressRef.current
+      );
       ToastService.error("Upload Failed", error.message);
     },
+    [setError]
+  );
+
+  // Chunked upload hook
+  const chunkedUpload = useChunkedUpload({
+    onProgress: handleChunkedProgress,
+    onComplete: handleChunkedComplete,
+    onError: handleChunkedError,
   });
 
   useStrictModeMountEffect(() => {
@@ -104,6 +124,15 @@ const AudioUpload: React.FC = () => {
     setShowFilenameDialog(true);
   };
 
+  const resetUploadState = () => {
+    setIsUploading(false);
+    setPendingFile(null);
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleFilenameConfirm = async (filename: string) => {
     if (!pendingFile || !uploadConfig) return;
 
@@ -132,7 +161,11 @@ const AudioUpload: React.FC = () => {
         );
 
         // Use chunked upload for large files
+        // Don't catch errors here - let them bubble up to be handled in the main catch block
         await chunkedUpload.uploadFile(renamedFile, filename);
+
+        // Only reset upload state after successful chunked upload
+        resetUploadState();
       } else {
         console.log(
           `Using regular upload for file (${Math.round(
@@ -153,6 +186,9 @@ const AudioUpload: React.FC = () => {
           setError(errorMessage);
           ToastService.error("Upload Failed", errorMessage);
         }
+
+        // Reset state after successful regular upload
+        resetUploadState();
       }
     } catch (error) {
       const errorMessage =
@@ -166,14 +202,11 @@ const AudioUpload: React.FC = () => {
       ) {
         ToastService.error("Upload Error", errorMessage);
       }
-    } finally {
-      setIsUploading(false);
-      setPendingFile(null);
-      setUploadProgress(0);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+
+      // Reset state on error for both upload types
+      resetUploadState();
     }
+    // Remove the finally block since we handle cleanup in each path
   };
 
   const handleFilenameCancel = () => {
@@ -260,16 +293,6 @@ const AudioUpload: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Cancel button for chunked uploads */}
-        {uploadMethod === "chunked" && (
-          <button
-            onClick={() => chunkedUpload.cancelUpload()}
-            className="mt-4 px-4 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 hover:border-red-400 rounded-md transition-colors"
-          >
-            Cancel Upload
-          </button>
-        )}
       </div>
     </>
   );
@@ -343,9 +366,36 @@ const AudioUpload: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {isLoadingConfig ? (
-        renderLoadingState()
-      ) : (
+      {isLoadingConfig && renderLoadingState()}
+
+      {!isLoadingConfig && isUploading && (
+        // When uploading, don't use a button wrapper to avoid nested buttons
+        <div
+          className={`
+            w-full relative border-2 border-dashed rounded-2xl p-12 text-center
+            transition-all duration-200 ease-in-out
+            ${
+              isDragging
+                ? "border-gray-400 bg-gray-50 scale-[1.02]"
+                : "border-gray-300"
+            }
+          `}
+        >
+          <div className="space-y-4">{renderUploadingState()}</div>
+
+          {/* Cancel button for chunked uploads - outside of any button */}
+          {uploadMethod === "chunked" && (
+            <button
+              onClick={() => chunkedUpload.cancelUpload()}
+              className="mt-4 px-4 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 hover:border-red-400 rounded-md transition-colors"
+            >
+              Cancel Upload
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isLoadingConfig && !isUploading && (
         <button
           type="button"
           className={`
@@ -356,10 +406,9 @@ const AudioUpload: React.FC = () => {
                 ? "border-gray-400 bg-gray-50 scale-[1.02]"
                 : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
             }
-            ${isUploading ? "pointer-events-none" : ""}
           `}
           aria-label="Upload audio file - click or drag and drop files here"
-          disabled={isUploading || !uploadConfig}
+          disabled={!uploadConfig}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -378,9 +427,7 @@ const AudioUpload: React.FC = () => {
             disabled={isUploading || !uploadConfig}
           />
 
-          <div className="space-y-4">
-            {isUploading ? renderUploadingState() : renderUploadInterface()}
-          </div>
+          <div className="space-y-4">{renderUploadInterface()}</div>
         </button>
       )}
 

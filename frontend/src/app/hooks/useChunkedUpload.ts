@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
 import { api } from "@/sdk/services";
+import { useCallback, useRef, useState } from "react";
 
 export interface ChunkUploadProgress {
   uploadedBytes: number;
@@ -61,7 +61,10 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
   const [currentSession, setCurrentSession] =
     useState<ChunkedUploadSession | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<number>(0);
+
+  // Use a ref to track upload state to prevent dependency issues
+  const isUploadingRef = useRef(false);
+  const startTimeRef = useRef<number>(0);
 
   // Dynamic chunk size calculation based on file size
   const calculateOptimalChunkSize = useCallback(
@@ -146,10 +149,11 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     async (file: File, filename?: string): Promise<any> => {
       const actualFilename = filename || file.name;
       setIsUploading(true);
+      isUploadingRef.current = true;
       setError(null);
       setProgress(null);
       setCurrentSession(null);
-      setStartTime(Date.now());
+      startTimeRef.current = Date.now();
 
       // Calculate optimal chunk size for this file
       const chunkSize = calculateOptimalChunkSize(file.size);
@@ -183,7 +187,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
         let uploadedBytes = 0;
 
         for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-          if (!isUploading) {
+          if (!isUploadingRef.current) {
             throw new Error("Upload cancelled by user");
           }
 
@@ -205,7 +209,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
           );
 
           uploadedBytes += chunk.size;
-          const timeElapsed = Date.now() - startTime;
+          const timeElapsed = Date.now() - startTimeRef.current;
           const uploadSpeed = uploadedBytes / (timeElapsed / 1000); // bytes per second
           const remainingBytes = file.size - uploadedBytes;
           const estimatedTimeRemaining = remainingBytes / uploadSpeed;
@@ -252,6 +256,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
         console.log("Upload completed successfully:", finalizeResponse.data);
 
         setIsUploading(false);
+        isUploadingRef.current = false;
         setCurrentSession(null);
 
         const finalProgress: ChunkUploadProgress = {
@@ -270,6 +275,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       } catch (error) {
         console.error("Chunked upload failed:", error);
         setIsUploading(false);
+        isUploadingRef.current = false;
         setError(error instanceof Error ? error.message : "Upload failed");
         onError?.(error instanceof Error ? error : new Error("Upload failed"));
         throw error;
@@ -281,8 +287,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       onChunkComplete,
       onError,
       onComplete,
-      isUploading,
-      startTime,
       uploadChunkWithRetry,
     ]
   );
@@ -292,6 +296,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       try {
         await api.audioFiles.cancelChunkedUpload(currentSession.uploadId);
         setIsUploading(false);
+        isUploadingRef.current = false;
         setCurrentSession(null);
         setProgress(null);
         setError("Upload cancelled");
