@@ -11,10 +11,14 @@ import FilesPage from "./pages/FilesPage";
 import LandingPage from "./pages/LandingPage";
 
 function App() {
+  // Get the base URL for GitHub Pages deployment
+  const basename = import.meta.env.VITE_BASE_URL?.replace(/\/$/, '') || "";
+
   return (
     <ToastProvider>
       <ToastInitializer />
       <Router
+        basename={basename}
         future={{
           v7_startTransition: true,
           v7_relativeSplatPath: true,
