@@ -1,140 +1,170 @@
 # Docker Composer Fix Script
 
-This script fixes common issues with package installation and autoloader problems in Docker containers for the Meeting Audio Studio project.
+This script addresses common issues with PHP packages not being properly installed or registered in Docker containers, particularly for Laravel applications.
 
-## Quick Start
+## Overview
 
-```bash
-# Fix all common issues (recommended)
-./scripts/fix-docker-composer.sh
+The script provides comprehensive solutions for:
+- Package installation issues (especially fakerphp/faker)
+- Composer autoloader problems
+- File permission issues
+- Environment validation using a dedicated Laravel command
 
-# Or from the scripts directory
-cd scripts && ./fix-docker-composer.sh
-```
+## Validation System
+
+The script uses a custom Laravel command (`validate:environment`) for robust validation instead of brittle shell commands. This provides:
+
+- **Reliable Testing**: Uses actual PHP classes and Laravel framework
+- **Clear Output**: Structured validation messages with success/failure indicators
+- **Component-Specific Validation**: Test individual components independently
+- **Proper Error Handling**: Laravel exception handling with meaningful messages
+
+### Laravel Validation Command
+
+The `validate:environment` command tests:
+
+1. **Faker Functionality**:
+   - Tests `fake()` helper function
+   - Tests `Faker\Factory` class directly
+   - Validates generated data is not empty
+
+2. **Autoloader**:
+   - Tests key Laravel classes are loadable
+   - Validates autoload file exists and is readable
+   - Ensures all necessary classes are registered
+
+3. **Database**:
+   - Tests database connectivity
+   - Checks migration table existence
+   - Reports migration status
 
 ## Usage Examples
 
-### Full Fix (Recommended)
+### Validation Only
 ```bash
-./scripts/fix-docker-composer.sh
+# Validate all components
+./scripts/fix-docker-composer.sh --validate-only
+
+# Validate specific components
+./scripts/fix-docker-composer.sh --validate-faker
+./scripts/fix-docker-composer.sh --validate-autoloader
+./scripts/fix-docker-composer.sh --validate-database
 ```
-This runs all fixes: autoloader, Faker package, and permissions.
 
-### Specific Fixes
-
-**Fix only Faker package issues:**
+### Fix Specific Issues
 ```bash
+# Fix only Faker package
 ./scripts/fix-docker-composer.sh --faker-only
-```
-Use when you get "Class 'Faker\Factory' not found" errors.
 
-**Fix only autoloader issues:**
-```bash
+# Fix only autoloader
 ./scripts/fix-docker-composer.sh --autoloader-only
-```
-Use when you get class not found errors or after package updates.
 
-**Fix only permission issues:**
-```bash
+# Fix only permissions
 ./scripts/fix-docker-composer.sh --permissions-only
 ```
-Use when you get permission denied errors on storage or cache directories.
 
-**Validate current state:**
+### Full Fix
 ```bash
-./scripts/fix-docker-composer.sh --validate-only
-```
-Use to check if everything is working without making changes.
-
-## Common Error Scenarios
-
-### Scenario 1: Migration Seeding Fails
-**Error:**
-```
-Class "Faker\Factory" not found
-```
-
-**Solution:**
-```bash
-./scripts/fix-docker-composer.sh --faker-only
-```
-
-### Scenario 2: Artisan Commands Fail
-**Error:**
-```
-Class not found or autoloader issues
-```
-
-**Solution:**
-```bash
-./scripts/fix-docker-composer.sh --autoloader-only
-```
-
-### Scenario 3: After Package Updates
-**When:** After running `composer update` or adding new packages
-
-**Solution:**
-```bash
+# Run all fixes (default)
 ./scripts/fix-docker-composer.sh
 ```
 
-### Scenario 4: Fresh Project Setup
-**When:** Setting up the project for the first time
+## Options
 
-**Solution:**
-```bash
-./scripts/fix-docker-composer.sh
-docker-compose exec backend php artisan migrate:fresh --seed
-```
+### Fix Options
+- `(no option)`: Run all fixes and validation
+- `--faker-only`: Fix only Faker package issues
+- `--autoloader-only`: Fix only autoloader issues
+- `--permissions-only`: Fix only permission issues
+
+### Validation Options
+- `--validate-only`: Validate all components
+- `--validate-faker`: Validate only Faker functionality
+- `--validate-autoloader`: Validate only autoloader
+- `--validate-database`: Validate only database connectivity
+
+### General
+- `--help`, `-h`: Show help message
 
 ## What the Script Does
 
-1. **Autoloader Fix:**
-   - Clears composer cache
-   - Removes and reinstalls vendor directory
-   - Regenerates optimized autoloader
+### Faker Package Fix
+1. Removes fakerphp/faker package
+2. Reinstalls fakerphp/faker as dev dependency
+3. Validates installation using Laravel command
 
-2. **Faker Package Fix:**
-   - Removes fakerphp/faker package
-   - Reinstalls it as dev dependency
-   - Ensures proper registration
+### Autoloader Fix
+1. Clears composer cache
+2. Removes vendor directory
+3. Reinstalls all packages (including dev dependencies) with optimization
+4. Regenerates optimized autoloader
+5. Validates class loading
 
-3. **Permission Fix:**
-   - Sets correct permissions on storage and bootstrap/cache
-   - Ensures www-data owns necessary directories
+### Permissions Fix
+1. Sets proper permissions on storage and bootstrap/cache
+2. Sets correct ownership for www-data user
 
-4. **Validation:**
-   - Tests if Faker classes are available
-   - Validates autoloader functionality
-   - Checks database connection
+### Validation
+1. Uses dedicated Laravel command for robust testing
+2. Tests actual functionality rather than file existence
+3. Provides clear success/failure indicators
+4. Supports component-specific validation
 
-## Troubleshooting
+## Common Issues Addressed
 
-### Script Fails to Start
-- Ensure Docker and docker-compose are installed
-- Make sure you're in the project root directory
-- Check if containers are running: `docker-compose ps`
+1. **"Class 'Faker\Factory' not found"**
+   - Caused by incomplete package installation in Docker
+   - Fixed by reinstalling faker package
 
-### Validation Fails
-- Check Docker container logs: `docker-compose logs backend`
-- Ensure database is configured properly
-- Try running the full fix: `./scripts/fix-docker-composer.sh`
+2. **"Faker is not available"**
+   - Autoloader not properly updated
+   - Fixed by regenerating autoloader
 
-### Permission Issues
-- Run: `./scripts/fix-docker-composer.sh --permissions-only`
-- Check Docker container user permissions
+3. **Permission denied errors**
+   - Incorrect file/directory permissions
+   - Fixed by setting proper permissions and ownership
 
-## After Running the Script
+## Prerequisites
 
-Once the script completes successfully, you can:
+- Docker and docker-compose installed
+- Backend container running (script will start if needed)
+- Laravel application with proper structure
+
+## Error Handling
+
+The script includes comprehensive error handling:
+- Validates Docker environment
+- Checks container status
+- Provides colored logging for clarity
+- Uses proper exit codes for automation
+- Validates fixes after application
+
+## Success Indicators
+
+After successful execution, you should see:
+- ✓ Faker is working (with generated sample data)
+- ✓ Autoloader is working correctly
+- ✓ Database connection successful
+- ✓ Database initialized with X migrations
+
+## Integration
+
+The script is designed to work with:
+- Laravel 11+ applications
+- Docker Compose setups
+- CI/CD pipelines (supports non-interactive mode)
+- Development and testing environments
+
+## Laravel Command Usage
+
+You can also use the validation command directly:
 
 ```bash
-# Test database operations
-docker-compose exec backend php artisan migrate:fresh --seed
+# Full validation
+docker-compose exec backend php artisan validate:environment
 
-# Run tests
-docker-compose exec backend php artisan test
-
-# Check application status
-docker-compose exec backend php artisan about
+# Component-specific validation
+docker-compose exec backend php artisan validate:environment --component=faker
+docker-compose exec backend php artisan validate:environment --component=autoloader
+docker-compose exec backend php artisan validate:environment --component=database
 ```

@@ -81,7 +81,7 @@ fix_faker_package() {
 
     # Remove and reinstall faker
     log_info "Removing fakerphp/faker..."
-    docker-compose exec -T backend bash -c 'echo "yes" | composer remove fakerphp/faker' || true
+    docker-compose exec backend composer remove --no-interaction fakerphp/faker || true
 
     log_info "Reinstalling fakerphp/faker..."
     docker-compose exec backend composer require fakerphp/faker --dev
@@ -101,12 +101,8 @@ fix_autoloader() {
     log_info "Removing vendor directory..."
     docker-compose exec backend rm -rf vendor
 
-    log_info "Reinstalling all packages..."
-    docker-compose exec backend composer install --no-dev --optimize-autoloader
-
-    # Install dev dependencies
-    log_info "Installing dev dependencies..."
-    docker-compose exec backend composer install --dev
+    log_info "Reinstalling all packages with dev dependencies..."
+    docker-compose exec backend composer install --dev --optimize-autoloader
 
     # Dump optimized autoloader
     log_info "Generating optimized autoloader..."
@@ -126,34 +122,32 @@ fix_permissions() {
     log_success "Permissions fixed"
 }
 
+# Function to validate specific components
+validate_component() {
+    local component=$1
+    log_info "Validating $component..."
+
+    if docker-compose exec -T backend php artisan validate:environment --component="$component"; then
+        log_success "$component validation passed"
+        return 0
+    else
+        log_error "$component validation failed"
+        return 1
+    fi
+}
+
 # Function to validate the fix
 validate_fix() {
     log_info "Validating the fix..."
 
-    # Test if Faker is working
-    log_info "Testing Faker availability..."
-    if docker-compose exec -T backend php artisan tinker --execute="fake()->name(); echo 'Faker OK';" 2>/dev/null | grep -q "Faker OK"; then
-        log_success "Faker is available via fake() helper"
+    # Use the Laravel validation command
+    log_info "Running environment validation..."
+    if docker-compose exec -T backend php artisan validate:environment; then
+        log_success "All validations passed"
+        return 0
     else
-        log_error "Faker is still not available"
+        log_error "Some validations failed"
         return 1
-    fi
-
-    # Test autoloader
-    log_info "Testing autoloader..."
-    if docker-compose exec backend composer dump-autoload --dry-run; then
-        log_success "Autoloader is working"
-    else
-        log_error "Autoloader has issues"
-        return 1
-    fi
-
-    # Test database migration (dry run)
-    log_info "Testing database operations..."
-    if docker-compose exec backend php artisan migrate:status; then
-        log_success "Database operations are working"
-    else
-        log_warning "Database operations may have issues (this might be expected if not configured)"
     fi
 }
 
@@ -194,12 +188,12 @@ case "${1:-}" in
     --faker-only)
         log_info "Running Faker fix only..."
         fix_faker_package
-        validate_fix
+        validate_component "faker"
         ;;
     --autoloader-only)
         log_info "Running autoloader fix only..."
         fix_autoloader
-        validate_fix
+        validate_component "autoloader"
         ;;
     --permissions-only)
         log_info "Running permissions fix only..."
@@ -209,17 +203,48 @@ case "${1:-}" in
         log_info "Running validation only..."
         validate_fix
         ;;
+    --validate-faker)
+        log_info "Validating Faker only..."
+        if validate_component "faker"; then
+            exit 0
+        else
+            exit 1
+        fi
+        ;;
+    --validate-autoloader)
+        log_info "Validating autoloader only..."
+        if validate_component "autoloader"; then
+            exit 0
+        else
+            exit 1
+        fi
+        ;;
+    --validate-database)
+        log_info "Validating database only..."
+        if validate_component "database"; then
+            exit 0
+        else
+            exit 1
+        fi
+        ;;
     --help|-h)
         echo "Docker Composer Fix Script"
         echo ""
         echo "Usage: $0 [OPTION]"
         echo ""
-        echo "Options:"
+        echo "Fix Options:"
         echo "  (no option)         Run all fixes"
         echo "  --faker-only        Fix only Faker package issues"
         echo "  --autoloader-only   Fix only autoloader issues"
         echo "  --permissions-only  Fix only permission issues"
-        echo "  --validate-only     Only validate current state"
+        echo ""
+        echo "Validation Options:"
+        echo "  --validate-only     Validate all components"
+        echo "  --validate-faker    Validate only Faker functionality"
+        echo "  --validate-autoloader  Validate only autoloader"
+        echo "  --validate-database Validate only database connectivity"
+        echo ""
+        echo "General:"
         echo "  --help, -h          Show this help message"
         echo ""
         exit 0

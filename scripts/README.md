@@ -5,14 +5,26 @@ This directory contains utility scripts for the Meeting Audio Studio project.
 ## Development & Maintenance Scripts
 
 ### `fix-docker-composer.sh`
-**Purpose**: Fix Docker Composer package installation and autoloader issues
+**Purpose**: Fix Docker Composer package installation and autoloader issues with robust Laravel-based validation
+
+**Key Features**:
+- **Reliable Validation**: Uses dedicated Laravel command (`validate:environment`) instead of shell scripts
+- **Component-Specific Testing**: Validate individual components (Faker, autoloader, database)
+- **Comprehensive Fixes**: Package reinstallation, autoloader regeneration, permission fixes
+- **Clear Output**: Colored logging with success/failure indicators
+
 **Usage**:
 - Full fix: `./scripts/fix-docker-composer.sh`
 - Faker only: `./scripts/fix-docker-composer.sh --faker-only`
 - Autoloader only: `./scripts/fix-docker-composer.sh --autoloader-only`
 - Permissions only: `./scripts/fix-docker-composer.sh --permissions-only`
-- Validate only: `./scripts/fix-docker-composer.sh --validate-only`
+- Validate all: `./scripts/fix-docker-composer.sh --validate-only`
+- Validate Faker: `./scripts/fix-docker-composer.sh --validate-faker`
+- Validate autoloader: `./scripts/fix-docker-composer.sh --validate-autoloader`
+- Validate database: `./scripts/fix-docker-composer.sh --validate-database`
 - Help: `./scripts/fix-docker-composer.sh --help`
+
+**Laravel Command**: Can also use directly: `docker-compose exec backend php artisan validate:environment`
 
 **Common Issues Fixed**:
 - Faker\Factory class not found errors
@@ -25,6 +37,7 @@ This directory contains utility scripts for the Meeting Audio Studio project.
 - After major package updates
 - When migrations or artisan commands fail with autoloader errors
 - When setting up the project for the first time
+- For debugging environment issues with reliable validation
 
 ## Testing Scripts
 
