@@ -1,3 +1,4 @@
+import { api, demo } from "../config/env";
 import ToastService from "../services/toastService";
 import { ApiError, ErrorInterceptor } from "../types/error";
 import {
@@ -167,6 +168,32 @@ class ApiInterceptor {
       retries: 2,
       ...config,
     };
+
+    // Check if we should use demo mode
+    if (demo.isEnabled || demo.isApiUnavailable()) {
+      console.log("Demo mode active - returning mock data");
+
+      // Get mock data based on the URL and method
+      const mockData = api.getMockResponse(url, defaultConfig.method);
+
+      // Simulate network delay
+      const delay = Math.random() * 1000 + 500; // 500-1500ms
+      await new Promise((resolve) => setTimeout(resolve, delay));
+
+      // Return mock response
+      const mockResponse: InterceptorResponse<T> = {
+        data: mockData as T,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers({
+          "content-type": "application/json",
+          "x-demo-mode": "true",
+        }),
+        config: defaultConfig,
+      };
+
+      return await this.processResponse(mockResponse);
+    }
 
     // Process request through interceptors
     const processedRequest = await this.processRequest({
