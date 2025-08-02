@@ -246,7 +246,7 @@ const LandingPage: React.FC = () => {
                 Multiple Formats
               </h3>
               <p className="text-gray-600">
-                Support for MP3, WAV, M4A, FLAC, and OGG files up to 100MB with
+                Support for MP3, WAV, M4A, FLAC, and OGG files up to 1GB with
                 automatic format conversion.
               </p>
             </div>

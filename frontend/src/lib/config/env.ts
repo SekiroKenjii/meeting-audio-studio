@@ -318,10 +318,10 @@ export const api = {
       return {
         success: true,
         data: {
-          max_file_size_bytes: 104857600, // 100MB
-          max_file_size_mb: 100,
-          max_chunk_size_bytes: 20971520, // 20MB
-          max_chunk_size_mb: 20,
+          max_file_size_bytes: 1073741824, // 1GB
+          max_file_size_mb: 1024,
+          max_chunk_size_bytes: 52428800, // 50MB
+          max_chunk_size_mb: 50,
           allowed_extensions: [".mp3", ".wav", ".m4a", ".mp4", ".flac", ".aac"],
           allowed_mime_types: [
             "audio/mpeg",
