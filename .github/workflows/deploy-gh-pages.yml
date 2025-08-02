@@ -34,7 +34,7 @@ jobs:
         cache-dependency-path: frontend/package-lock.json
 
     - name: Setup Pages
-      uses: actions/configure-pages@v4
+      uses: actions/configure-pages@v5
 
     - name: Create production environment file
       run: |
@@ -78,7 +78,7 @@ jobs:
         GITHUB_PAGES: true
 
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v2
+      uses: actions/upload-pages-artifact@v3
       with:
         path: ./frontend/build
 
@@ -91,4 +91,4 @@ jobs:
     steps:
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v3
+      uses: actions/deploy-pages@v4
