@@ -1,5 +1,5 @@
 // Auto-generated API service
-// Generated on: 2025-07-29T16:18:15.206Z
+// Generated on: 2025-08-01T15:35:46.595Z
 
 import { apiService } from "@/lib/services/apiService";
 import { ApiResponse } from "@/lib/types/apiResponse";
@@ -65,6 +65,60 @@ class AudioFilesService {
   }
 
   /**
+   * Cancel chunked upload
+   */
+  async cancelChunkedUpload(uploadId: string): Promise<ApiResponse<any>> {
+    return this.request(`/audio-files/chunked/cancel/${uploadId}`, {
+      method: "DELETE",
+    });
+  }
+
+  /**
+   * Finalize chunked upload
+   */
+  async finalizeChunkedUpload(uploadId: string): Promise<ApiResponse<any>> {
+    return this.request(`/audio-files/chunked/finalize/${uploadId}`, {
+      method: "POST",
+    });
+  }
+
+  /**
+   * Initialize chunked upload session
+   */
+  async initializeChunkedUpload(params: { filename: string; fileSize: number; totalChunks: number; mimeType: string }): Promise<ApiResponse<any>> {
+    return this.request("/audio-files/chunked/initialize", {
+      method: "POST",
+      body: JSON.stringify(params),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  }
+
+  /**
+   * Get chunked upload status
+   */
+  async getChunkedUploadStatus(uploadId: string): Promise<ApiResponse<any>> {
+    return this.request(`/audio-files/chunked/status/${uploadId}`);
+  }
+
+  /**
+   * Upload a single chunk
+   */
+  async uploadChunk(params: { uploadId: string; chunkIndex: number; chunk: Blob; totalChunks: number }): Promise<ApiResponse<any>> {
+    const formData = new FormData();
+    formData.append("uploadId", params.uploadId);
+    formData.append("chunkIndex", params.chunkIndex.toString());
+    formData.append("totalChunks", params.totalChunks.toString());
+    formData.append("chunk", params.chunk);
+
+    return this.request("/audio-files/chunked/upload", {
+      method: "POST",
+      body: formData,
+    });
+  }
+
+  /**
    * Get upload configuration
    */
   async getUploadConfig(): Promise<ApiResponse<any>> {
@@ -83,72 +137,6 @@ class AudioFilesService {
    */
   async getTranscriptByAudioFile(id: number): Promise<ApiResponse<any>> {
     return this.request(`/audio-files/${id}/transcript`);
-  }
-
-  // Chunked Upload Methods
-
-  /**
-   * Initialize chunked upload session
-   */
-  async initializeChunkedUpload(params: {
-    filename: string;
-    fileSize: number;
-    totalChunks: number;
-    mimeType: string;
-  }): Promise<ApiResponse<any>> {
-    return this.request("/audio-files/chunked/initialize", {
-      method: "POST",
-      body: JSON.stringify(params),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-  }
-
-  /**
-   * Upload a single chunk
-   */
-  async uploadChunk(params: {
-    uploadId: string;
-    chunkIndex: number;
-    chunk: Blob;
-    totalChunks: number;
-  }): Promise<ApiResponse<any>> {
-    const formData = new FormData();
-    formData.append("uploadId", params.uploadId);
-    formData.append("chunkIndex", params.chunkIndex.toString());
-    formData.append("totalChunks", params.totalChunks.toString());
-    formData.append("chunk", params.chunk);
-
-    return this.request("/audio-files/chunked/upload", {
-      method: "POST",
-      body: formData,
-    });
-  }
-
-  /**
-   * Finalize chunked upload
-   */
-  async finalizeChunkedUpload(uploadId: string): Promise<ApiResponse<any>> {
-    return this.request(`/audio-files/chunked/finalize/${uploadId}`, {
-      method: "POST",
-    });
-  }
-
-  /**
-   * Cancel chunked upload
-   */
-  async cancelChunkedUpload(uploadId: string): Promise<ApiResponse<any>> {
-    return this.request(`/audio-files/chunked/cancel/${uploadId}`, {
-      method: "DELETE",
-    });
-  }
-
-  /**
-   * Get chunked upload status
-   */
-  async getChunkedUploadStatus(uploadId: string): Promise<ApiResponse<any>> {
-    return this.request(`/audio-files/chunked/status/${uploadId}`);
   }
 }
 

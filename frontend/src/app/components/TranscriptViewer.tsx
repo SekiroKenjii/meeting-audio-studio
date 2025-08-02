@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { api } from "../../sdk/api";
+import { api } from "../../sdk/services";
 import { useAudio } from "../hooks";
 import { useStrictModeEffect } from "../hooks/useStrictModeEffect";
 import { TranscriptDiarizedSegment, TranscriptQuery } from "../types/audio";

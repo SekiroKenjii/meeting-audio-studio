@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ToastService from "../../lib/services/toastService";
-import { api } from "../../sdk/api";
+import { api } from "../../sdk/services";
 import { useAudio } from "../hooks";
 import { useStrictModeMountEffect } from "./useStrictModeEffect";
 

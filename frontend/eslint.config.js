@@ -7,7 +7,7 @@ import tsparser from "@typescript-eslint/parser";
 
 export default [
   {
-    ignores: ["dist", "build", "node_modules", "generate-api.js"],
+    ignores: ["dist", "build", "node_modules", "gen-proxy.js"],
   },
   {
     files: ["**/*.{js,jsx,ts,tsx}"],

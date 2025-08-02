@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { api } from "@/sdk/api";
+import { api } from "@/sdk/services";
 
 export interface ChunkUploadProgress {
   uploadedBytes: number;

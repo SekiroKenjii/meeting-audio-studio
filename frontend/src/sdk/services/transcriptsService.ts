@@ -1,5 +1,5 @@
 // Auto-generated API service
-// Generated on: 2025-07-29T16:18:15.207Z
+// Generated on: 2025-08-01T15:35:46.596Z
 
 import { apiService } from "@/lib/services/apiService";
 import { ApiResponse } from "@/lib/types/apiResponse";
