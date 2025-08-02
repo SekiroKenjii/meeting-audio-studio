@@ -1,5 +1,5 @@
 import ToastService from "@/lib/services/toastService";
-import { api } from "@/sdk/api";
+import { api } from "@/sdk/services";
 import React, { useRef, useState } from "react";
 import { useAudio } from "../hooks";
 import { useChunkedUpload } from "../hooks/useChunkedUpload";

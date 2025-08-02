@@ -14,7 +14,7 @@ echo "Backend API URL: $API_BASE_URL"
 echo "Running API generator..."
 
 # Run the Node.js generator
-node generate-api.js
+node gen-proxy.js
 
 echo "API Proxy generation completed!"
 echo ""

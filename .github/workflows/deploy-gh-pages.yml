@@ -1,0 +1,96 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+      with:
+        static_site_generator: custom
+
+    - name: Create production environment file
+      run: |
+        cat > .env.production << EOF
+        # Demo configuration - No backend required
+        # When you deploy your backend, update these URLs and set VITE_DEMO_MODE=false
+        VITE_API_URL=http://localhost:8000/api
+        VITE_API_VERSION=v1
+
+        # WebSocket configuration - Demo values
+        VITE_REVERB_HOST=localhost
+        VITE_REVERB_PORT=8081
+        VITE_REVERB_SCHEME=http
+        VITE_PUSHER_APP_KEY=demo-key
+
+        # GitHub Pages specific
+        VITE_BASE_URL=/meeting-audio-studio/
+        GITHUB_PAGES=true
+
+        # Enable demo mode - Uses mock data instead of API calls
+        VITE_DEMO_MODE=true
+        VITE_SHOW_DEMO_NOTICE=true
+        EOF
+
+    - name: Install dependencies
+      run: npm ci --prefer-offline --no-audit
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Run type checking
+      run: npm run type-check
+
+    - name: Run tests
+      run: npm run test:ci
+
+    - name: Build for production
+      run: npm run build
+      env:
+        NODE_ENV: production
+        GITHUB_PAGES: true
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./frontend/build
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

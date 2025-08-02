@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Layers } from "lucide-react";
+import DemoBanner from "../components/DemoBanner";
 
 const LandingPage: React.FC = () => {
   return (
@@ -46,6 +47,11 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Demo Banner */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <DemoBanner />
+      </div>
 
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
