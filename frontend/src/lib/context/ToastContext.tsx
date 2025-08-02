@@ -56,7 +56,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
   const showInfo = useCallback(
     (title: string, message?: string) => {
-      addToast({ type: "info", title, message });
+      addToast({ type: "info", title, message, duration: 4000 }); // Add duration for auto-close
     },
     [addToast]
   );

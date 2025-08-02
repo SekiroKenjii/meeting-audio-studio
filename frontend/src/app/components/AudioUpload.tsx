@@ -51,16 +51,30 @@ const AudioUpload: React.FC = () => {
         "Chunked upload failed with progress:",
         uploadProgressRef.current
       );
+
+      // Show error toast for actual errors (not cancellations)
       ToastService.error("Upload Failed", error.message);
     },
     [setError]
   );
+
+  const handleChunkedCancel = useCallback(() => {
+    console.log("Upload cancelled by user");
+    // Show info toast for cancellation - it's not an error
+    // Use shorter duration since it's just confirmation
+    ToastService.info(
+      "Upload Cancelled",
+      "File upload has been cancelled.",
+      3000
+    );
+  }, []);
 
   // Chunked upload hook
   const chunkedUpload = useChunkedUpload({
     onProgress: handleChunkedProgress,
     onComplete: handleChunkedComplete,
     onError: handleChunkedError,
+    onCancel: handleChunkedCancel,
   });
 
   useStrictModeMountEffect(() => {
@@ -185,11 +199,8 @@ const AudioUpload: React.FC = () => {
           )}MB)`
         );
 
-        // Use chunked upload for large files
-        // Don't catch errors here - let them bubble up to be handled in the main catch block
         await chunkedUpload.uploadFile(renamedFile, filename);
 
-        // Only reset upload state after successful chunked upload
         resetUploadState();
       } else {
         console.log(
@@ -212,20 +223,22 @@ const AudioUpload: React.FC = () => {
           ToastService.error("Upload Failed", errorMessage);
         }
 
-        // Reset state after successful regular upload
         resetUploadState();
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Upload failed";
-      setError(errorMessage);
 
-      // Only show additional toast for non-API errors if not already handled by chunked upload
-      if (
-        !(error instanceof Error) ||
-        !error.message.includes("Request failed")
-      ) {
-        ToastService.error("Upload Error", errorMessage);
+      // Only set error state for actual errors, not cancellations
+      if (!errorMessage.includes("cancelled")) {
+        setError(errorMessage);
+
+        if (
+          !(error instanceof Error) ||
+          !error.message.includes("Request failed")
+        ) {
+          ToastService.error("Upload Error", errorMessage);
+        }
       }
 
       // Reset state on error for both upload types

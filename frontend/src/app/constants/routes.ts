@@ -51,7 +51,6 @@ export const ROUTES = {
   // Dashboard Routes
   DASHBOARD: "/dashboard",
   DASHBOARD_FILES: "/dashboard/files",
-  DASHBOARD_OVERVIEW: "/dashboard/overview",
   DASHBOARD_SETTINGS: "/dashboard/settings",
   DASHBOARD_TRANSCRIPTS: "/dashboard/transcripts",
   DASHBOARD_ANALYTICS: "/dashboard/analytics",

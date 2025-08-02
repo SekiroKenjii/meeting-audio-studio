@@ -30,6 +30,7 @@ interface UseChunkedUploadOptions {
   onProgress?: (progress: ChunkUploadProgress) => void;
   onChunkComplete?: (chunkIndex: number, progress: ChunkUploadProgress) => void;
   onError?: (error: Error) => void;
+  onCancel?: () => void; // New callback specifically for cancellation
   onComplete?: (audioFile: any) => void;
   maxRetries?: number; // Default: 3
   retryDelay?: number; // Default: 1000ms
@@ -46,6 +47,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     onProgress,
     onChunkComplete,
     onError,
+    onCancel,
     onComplete,
     maxRetries = 3,
     retryDelay = 1000,
@@ -62,7 +64,11 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     useState<ChunkedUploadSession | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Use AbortController for robust cancellation instead of refs
+  // Use AbortController for robust cancellation.
+  // Previously, cancellation was managed using refs to store a boolean flag (e.g., isCancelled),
+  // which could lead to race conditions or missed cancellations in async operations.
+  // AbortController provides a standardized and more reliable way to signal and handle cancellation,
+  // especially with fetch and other web APIs, making the upload process more robust.
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
 
@@ -71,10 +77,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     (fileSize: number): number => {
       if (fixedChunkSize) return fixedChunkSize;
 
-      // Calculate chunk size to stay within maxChunks limit
       let optimalSize = Math.ceil(fileSize / maxChunks);
-
-      // Ensure chunk size is within bounds
       optimalSize = Math.max(minChunkSize, Math.min(maxChunkSize, optimalSize));
 
       // Round to nearest MB for cleaner chunks
@@ -106,7 +109,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       retries = 0
     ): Promise<any> => {
       try {
-        // Check for cancellation before uploading
         if (abortSignal.aborted) {
           throw new Error("Upload cancelled");
         }
@@ -126,7 +128,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
           );
         }
       } catch (error) {
-        // Don't retry if upload was cancelled
         if (abortSignal.aborted) {
           throw new Error("Upload cancelled");
         }
@@ -184,7 +185,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       );
 
       try {
-        // Check if upload was cancelled before starting
         if (abortController.signal.aborted) {
           throw new Error("Upload cancelled before starting");
         }
@@ -208,7 +208,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
         let uploadedBytes = 0;
 
         for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-          // Check for cancellation at the start of each iteration (atomic check)
           if (abortController.signal.aborted) {
             throw new Error("Upload cancelled by user");
           }
@@ -231,11 +230,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
             abortController.signal
           );
 
-          // Check for cancellation after chunk upload
-          if (abortController.signal.aborted) {
-            throw new Error("Upload cancelled during chunk upload");
-          }
-
           uploadedBytes += chunk.size;
           const timeElapsed = Date.now() - startTimeRef.current;
           const uploadSpeed = uploadedBytes / (timeElapsed / 1000); // bytes per second
@@ -257,7 +251,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
           onProgress?.(progressData);
           onChunkComplete?.(chunkIndex, progressData);
 
-          // Update session data
           if (chunkResponse) {
             setCurrentSession((prev) =>
               prev
@@ -312,8 +305,17 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
 
         const errorMessage =
           error instanceof Error ? error.message : "Upload failed";
-        setError(errorMessage);
-        onError?.(error instanceof Error ? error : new Error("Upload failed"));
+
+        if (errorMessage.includes("cancelled")) {
+          setError(null);
+          onCancel?.(); // Call cancellation callback instead of error callback
+        } else {
+          setError(errorMessage);
+          onError?.(
+            error instanceof Error ? error : new Error("Upload failed")
+          );
+        }
+
         throw error;
       }
     },
@@ -322,6 +324,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       onProgress,
       onChunkComplete,
       onError,
+      onCancel,
       onComplete,
       uploadChunkWithRetry,
     ]
@@ -332,7 +335,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
 
     if (controller && !controller.signal.aborted && isUploading) {
       try {
-        // Signal cancellation to abort any ongoing operations
         controller.abort();
 
         // If we have a current session, try to cancel it on the server
@@ -344,7 +346,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
         abortControllerRef.current = null;
         setCurrentSession(null);
         setProgress(null);
-        setError("Upload cancelled");
+        setError(null); // Don't set error for cancellation
       } catch (error) {
         console.error("Failed to cancel upload:", error);
         // Still set local state even if server cancellation failed
@@ -352,7 +354,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
         abortControllerRef.current = null;
         setCurrentSession(null);
         setProgress(null);
-        setError("Upload cancelled");
+        setError(null); // Don't set error for cancellation
       }
     }
   }, [currentSession, isUploading]);
@@ -382,7 +384,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     currentSession,
     error,
 
-    // Computed values
     isComplete: progress?.isComplete || false,
     progressPercentage: progress?.percentage || 0,
     uploadedChunks: currentSession?.uploadedChunks || 0,
