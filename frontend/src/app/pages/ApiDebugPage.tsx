@@ -1,5 +1,5 @@
+import { api } from "@/sdk/services";
 import React, { useState } from "react";
-import { api } from "../../sdk/services";
 
 const ApiDebugPage: React.FC = () => {
   const [testResults, setTestResults] = useState<any[]>([]);

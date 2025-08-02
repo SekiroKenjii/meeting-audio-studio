@@ -1,9 +1,8 @@
 import ToastService from "@/lib/services/toastService";
 import { api } from "@/sdk/services";
-import React, { useRef, useState } from "react";
-import { useAudio } from "../hooks";
-import { useChunkedUpload } from "../hooks/useChunkedUpload";
-import { useStrictModeMountEffect } from "../hooks/useStrictModeEffect";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { EVENTS } from "../constants/events";
+import { useAudio, useChunkedUpload, useStrictModeMountEffect } from "../hooks";
 import { UploadConfig } from "../types/audio";
 import FilenameConfirmDialog from "./FilenameConfirmDialog";
 
@@ -21,23 +20,50 @@ const AudioUpload: React.FC = () => {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Chunked upload hook
-  const chunkedUpload = useChunkedUpload({
-    onProgress: (progress) => {
-      setUploadProgress(progress.percentage);
-    },
-    onComplete: (audioFile) => {
+  // Memoized callbacks for the chunked upload hook to prevent re-initialization
+  const handleChunkedProgress = useCallback((progress: any) => {
+    setUploadProgress(progress.percentage);
+  }, []);
+
+  const handleChunkedComplete = useCallback(
+    (audioFile: any) => {
       addAudioFile(audioFile);
       ToastService.success(
         "Upload Completed",
         `${audioFile.filename} has been uploaded and is being processed.`
       );
     },
-    onError: (error) => {
+    [addAudioFile]
+  );
+
+  const handleChunkedError = useCallback(
+    (error: any) => {
       setError(error.message);
       console.log("Chunked upload failed with progress:", uploadProgress);
+
+      // Show error toast for actual errors (not cancellations)
       ToastService.error("Upload Failed", error.message);
     },
+    [setError, uploadProgress]
+  );
+
+  const handleChunkedCancel = useCallback(() => {
+    console.log("Upload cancelled by user");
+    // Show info toast for cancellation - it's not an error
+    // Use shorter duration since it's just confirmation
+    ToastService.info(
+      "Upload Cancelled",
+      "File upload has been cancelled.",
+      3000
+    );
+  }, []);
+
+  // Chunked upload hook
+  const chunkedUpload = useChunkedUpload({
+    onProgress: handleChunkedProgress,
+    onComplete: handleChunkedComplete,
+    onError: handleChunkedError,
+    onCancel: handleChunkedCancel,
   });
 
   useStrictModeMountEffect(() => {
@@ -65,6 +91,28 @@ const AudioUpload: React.FC = () => {
 
     fetchUploadConfig();
   });
+
+  // Separate effect for event listener that only runs once on mount
+  useEffect(() => {
+    const handleUploadTrigger = () => {
+      if (!isUploading && uploadConfig) {
+        fileInputRef.current?.click();
+      } else {
+        console.log(
+          "AudioUpload: cannot trigger upload - uploading or no config"
+        );
+      }
+    };
+
+    window.addEventListener(EVENTS.TRIGGER_FILE_UPLOAD, handleUploadTrigger);
+
+    return () => {
+      window.removeEventListener(
+        EVENTS.TRIGGER_FILE_UPLOAD,
+        handleUploadTrigger
+      );
+    };
+  }, [isUploading, uploadConfig]); // Add dependencies so the callback uses current values
 
   const validateFile = (file: File): string | null => {
     if (!uploadConfig) {
@@ -104,6 +152,15 @@ const AudioUpload: React.FC = () => {
     setShowFilenameDialog(true);
   };
 
+  const resetUploadState = () => {
+    setIsUploading(false);
+    setPendingFile(null);
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleFilenameConfirm = async (filename: string) => {
     if (!pendingFile || !uploadConfig) return;
 
@@ -131,8 +188,9 @@ const AudioUpload: React.FC = () => {
           )}MB)`
         );
 
-        // Use chunked upload for large files
         await chunkedUpload.uploadFile(renamedFile, filename);
+
+        resetUploadState();
       } else {
         console.log(
           `Using regular upload for file (${Math.round(
@@ -153,26 +211,27 @@ const AudioUpload: React.FC = () => {
           setError(errorMessage);
           ToastService.error("Upload Failed", errorMessage);
         }
+
+        resetUploadState();
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Upload failed";
-      setError(errorMessage);
 
-      // Only show additional toast for non-API errors if not already handled by chunked upload
-      if (
-        !(error instanceof Error) ||
-        !error.message.includes("Request failed")
-      ) {
-        ToastService.error("Upload Error", errorMessage);
+      // Only set error state for actual errors, not cancellations
+      if (!errorMessage.includes("cancelled")) {
+        setError(errorMessage);
+
+        if (
+          !(error instanceof Error) ||
+          !error.message.includes("Request failed")
+        ) {
+          ToastService.error("Upload Error", errorMessage);
+        }
       }
-    } finally {
-      setIsUploading(false);
-      setPendingFile(null);
-      setUploadProgress(0);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+
+      // Reset state on error for both upload types
+      resetUploadState();
     }
   };
 
@@ -260,16 +319,6 @@ const AudioUpload: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Cancel button for chunked uploads */}
-        {uploadMethod === "chunked" && (
-          <button
-            onClick={() => chunkedUpload.cancelUpload()}
-            className="mt-4 px-4 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 hover:border-red-400 rounded-md transition-colors"
-          >
-            Cancel Upload
-          </button>
-        )}
       </div>
     </>
   );
@@ -343,9 +392,36 @@ const AudioUpload: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      {isLoadingConfig ? (
-        renderLoadingState()
-      ) : (
+      {isLoadingConfig && renderLoadingState()}
+
+      {!isLoadingConfig && isUploading && (
+        // When uploading, don't use a button wrapper to avoid nested buttons
+        <div
+          className={`
+            w-full relative border-2 border-dashed rounded-2xl p-12 text-center
+            transition-all duration-200 ease-in-out
+            ${
+              isDragging
+                ? "border-gray-400 bg-gray-50 scale-[1.02]"
+                : "border-gray-300"
+            }
+          `}
+        >
+          <div className="space-y-4">{renderUploadingState()}</div>
+
+          {/* Cancel button for chunked uploads - outside of any button */}
+          {uploadMethod === "chunked" && (
+            <button
+              onClick={() => chunkedUpload.cancelUpload()}
+              className="mt-4 px-4 py-2 text-sm text-red-600 hover:text-red-800 border border-red-300 hover:border-red-400 rounded-md transition-colors"
+            >
+              Cancel Upload
+            </button>
+          )}
+        </div>
+      )}
+
+      {!isLoadingConfig && !isUploading && (
         <button
           type="button"
           className={`
@@ -356,10 +432,9 @@ const AudioUpload: React.FC = () => {
                 ? "border-gray-400 bg-gray-50 scale-[1.02]"
                 : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
             }
-            ${isUploading ? "pointer-events-none" : ""}
           `}
           aria-label="Upload audio file - click or drag and drop files here"
-          disabled={isUploading || !uploadConfig}
+          disabled={!uploadConfig}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -378,9 +453,7 @@ const AudioUpload: React.FC = () => {
             disabled={isUploading || !uploadConfig}
           />
 
-          <div className="space-y-4">
-            {isUploading ? renderUploadingState() : renderUploadInterface()}
-          </div>
+          <div className="space-y-4">{renderUploadInterface()}</div>
         </button>
       )}
 

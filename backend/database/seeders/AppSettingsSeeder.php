@@ -14,14 +14,14 @@ class AppSettingsSeeder extends Seeder
             [
                 'key' => 'max_file_size_mb',
                 'category' => 'file_limits',
-                'value' => 100,
+                'value' => 1024, // 1GB
                 'type' => 'integer',
                 'description' => 'Maximum file size for uploads in MB',
             ],
             [
                 'key' => 'max_file_size_bytes',
                 'category' => 'file_limits',
-                'value' => 104857600, // 100MB
+                'value' => 1073741824, // 1GB
                 'type' => 'integer',
                 'description' => 'Maximum file size for uploads in bytes',
             ],

@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
 import { api } from "@/sdk/services";
+import { useCallback, useRef, useState } from "react";
 
 export interface ChunkUploadProgress {
   uploadedBytes: number;
@@ -30,6 +30,7 @@ interface UseChunkedUploadOptions {
   onProgress?: (progress: ChunkUploadProgress) => void;
   onChunkComplete?: (chunkIndex: number, progress: ChunkUploadProgress) => void;
   onError?: (error: Error) => void;
+  onCancel?: () => void; // New callback specifically for cancellation
   onComplete?: (audioFile: any) => void;
   maxRetries?: number; // Default: 3
   retryDelay?: number; // Default: 1000ms
@@ -46,6 +47,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     onProgress,
     onChunkComplete,
     onError,
+    onCancel,
     onComplete,
     maxRetries = 3,
     retryDelay = 1000,
@@ -61,17 +63,21 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
   const [currentSession, setCurrentSession] =
     useState<ChunkedUploadSession | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<number>(0);
+
+  // Use AbortController for robust cancellation.
+  // Previously, cancellation was managed using refs to store a boolean flag (e.g., isCancelled),
+  // which could lead to race conditions or missed cancellations in async operations.
+  // AbortController provides a standardized and more reliable way to signal and handle cancellation,
+  // especially with fetch and other web APIs, making the upload process more robust.
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const startTimeRef = useRef<number>(0);
 
   // Dynamic chunk size calculation based on file size
   const calculateOptimalChunkSize = useCallback(
     (fileSize: number): number => {
       if (fixedChunkSize) return fixedChunkSize;
 
-      // Calculate chunk size to stay within maxChunks limit
       let optimalSize = Math.ceil(fileSize / maxChunks);
-
-      // Ensure chunk size is within bounds
       optimalSize = Math.max(minChunkSize, Math.min(maxChunkSize, optimalSize));
 
       // Round to nearest MB for cleaner chunks
@@ -99,9 +105,14 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       chunkIndex: number,
       chunk: Blob,
       totalChunks: number,
+      abortSignal: AbortSignal,
       retries = 0
     ): Promise<any> => {
       try {
+        if (abortSignal.aborted) {
+          throw new Error("Upload cancelled");
+        }
+
         const response = await api.audioFiles.uploadChunk({
           uploadId,
           chunkIndex,
@@ -117,6 +128,10 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
           );
         }
       } catch (error) {
+        if (abortSignal.aborted) {
+          throw new Error("Upload cancelled");
+        }
+
         if (retries < maxRetries) {
           const delay = retryDelay * Math.pow(2, retries); // Exponential backoff
           console.warn(
@@ -130,6 +145,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
             chunkIndex,
             chunk,
             totalChunks,
+            abortSignal,
             retries + 1
           );
         } else {
@@ -145,11 +161,16 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
   const uploadFile = useCallback(
     async (file: File, filename?: string): Promise<any> => {
       const actualFilename = filename || file.name;
+
+      // Create new AbortController for this upload
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       setIsUploading(true);
       setError(null);
       setProgress(null);
       setCurrentSession(null);
-      setStartTime(Date.now());
+      startTimeRef.current = Date.now();
 
       // Calculate optimal chunk size for this file
       const chunkSize = calculateOptimalChunkSize(file.size);
@@ -164,6 +185,10 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       );
 
       try {
+        if (abortController.signal.aborted) {
+          throw new Error("Upload cancelled before starting");
+        }
+
         // 1. Initialize upload session
         const sessionResponse = await api.audioFiles.initializeChunkedUpload({
           filename: actualFilename,
@@ -179,11 +204,11 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
         const { uploadId } = sessionResponse.data;
         console.log("Upload session initialized:", uploadId);
 
-        // 2. Upload chunks sequentially
+        // 2. Upload chunks sequentially with cancellation checks
         let uploadedBytes = 0;
 
         for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-          if (!isUploading) {
+          if (abortController.signal.aborted) {
             throw new Error("Upload cancelled by user");
           }
 
@@ -201,11 +226,12 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
             uploadId,
             chunkIndex,
             chunk,
-            totalChunks
+            totalChunks,
+            abortController.signal
           );
 
           uploadedBytes += chunk.size;
-          const timeElapsed = Date.now() - startTime;
+          const timeElapsed = Date.now() - startTimeRef.current;
           const uploadSpeed = uploadedBytes / (timeElapsed / 1000); // bytes per second
           const remainingBytes = file.size - uploadedBytes;
           const estimatedTimeRemaining = remainingBytes / uploadSpeed;
@@ -225,7 +251,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
           onProgress?.(progressData);
           onChunkComplete?.(chunkIndex, progressData);
 
-          // Update session data
           if (chunkResponse) {
             setCurrentSession((prev) =>
               prev
@@ -237,6 +262,11 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
                 : null
             );
           }
+        }
+
+        // Check for cancellation before finalizing
+        if (abortController.signal.aborted) {
+          throw new Error("Upload cancelled before finalization");
         }
 
         // 3. Finalize upload
@@ -252,6 +282,7 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
         console.log("Upload completed successfully:", finalizeResponse.data);
 
         setIsUploading(false);
+        abortControllerRef.current = null;
         setCurrentSession(null);
 
         const finalProgress: ChunkUploadProgress = {
@@ -270,8 +301,21 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       } catch (error) {
         console.error("Chunked upload failed:", error);
         setIsUploading(false);
-        setError(error instanceof Error ? error.message : "Upload failed");
-        onError?.(error instanceof Error ? error : new Error("Upload failed"));
+        abortControllerRef.current = null;
+
+        const errorMessage =
+          error instanceof Error ? error.message : "Upload failed";
+
+        if (errorMessage.includes("cancelled")) {
+          setError(null);
+          onCancel?.(); // Call cancellation callback instead of error callback
+        } else {
+          setError(errorMessage);
+          onError?.(
+            error instanceof Error ? error : new Error("Upload failed")
+          );
+        }
+
         throw error;
       }
     },
@@ -280,23 +324,37 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
       onProgress,
       onChunkComplete,
       onError,
+      onCancel,
       onComplete,
-      isUploading,
-      startTime,
       uploadChunkWithRetry,
     ]
   );
 
   const cancelUpload = useCallback(async () => {
-    if (currentSession && isUploading) {
+    const controller = abortControllerRef.current;
+
+    if (controller && !controller.signal.aborted && isUploading) {
       try {
-        await api.audioFiles.cancelChunkedUpload(currentSession.uploadId);
+        controller.abort();
+
+        // If we have a current session, try to cancel it on the server
+        if (currentSession) {
+          await api.audioFiles.cancelChunkedUpload(currentSession.uploadId);
+        }
+
         setIsUploading(false);
+        abortControllerRef.current = null;
         setCurrentSession(null);
         setProgress(null);
-        setError("Upload cancelled");
+        setError(null); // Don't set error for cancellation
       } catch (error) {
         console.error("Failed to cancel upload:", error);
+        // Still set local state even if server cancellation failed
+        setIsUploading(false);
+        abortControllerRef.current = null;
+        setCurrentSession(null);
+        setProgress(null);
+        setError(null); // Don't set error for cancellation
       }
     }
   }, [currentSession, isUploading]);
@@ -326,7 +384,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
     currentSession,
     error,
 
-    // Computed values
     isComplete: progress?.isComplete || false,
     progressPercentage: progress?.percentage || 0,
     uploadedChunks: currentSession?.uploadedChunks || 0,

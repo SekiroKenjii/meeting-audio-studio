@@ -27,8 +27,8 @@ return new class () extends Migration {
             $table->integer('aggressive_sample_rate')->default(8000);
 
             // File size limits (in bytes)
-            $table->bigInteger('max_upload_size')->default(104857600); // 100MB
-            $table->bigInteger('compression_threshold')->default(26214400); // 25MB
+            $table->bigInteger('max_upload_size')->default(1073741824); // 1GB
+            $table->bigInteger('compression_threshold')->default(536870912); // 512MB
 
             // Processing settings
             $table->json('ffmpeg_options')->nullable(); // Additional FFmpeg options

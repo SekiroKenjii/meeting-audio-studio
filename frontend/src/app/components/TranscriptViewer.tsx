@@ -1,72 +1,70 @@
+import { apiService } from "@/lib/services/apiService";
+import { api } from "@/sdk/services";
 import React, { useState } from "react";
-import { api } from "../../sdk/services";
-import { useAudio } from "../hooks";
-import { useStrictModeEffect } from "../hooks/useStrictModeEffect";
+import { useAsyncOperation, useAudio, useStrictModeEffect } from "../hooks";
 import { TranscriptDiarizedSegment, TranscriptQuery } from "../types/audio";
 
 const TranscriptViewer: React.FC = () => {
   const { selectedAudioFile, transcript, setTranscript, setError } = useAudio();
-  const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState("");
-  const [isQuerying, setIsQuerying] = useState(false);
   const [queryResult, setQueryResult] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"diarized" | "full" | "queries">(
     "diarized"
   );
 
+  // Load transcript async operation
+  const { isLoading, execute: loadTranscript } = useAsyncOperation({
+    onSuccess: (data: any) => {
+      setTranscript(data);
+    },
+    onError: () => {
+      setError("Failed to load transcript");
+    },
+    errorMessage: "Failed to load transcript",
+  });
+
+  // Query processing async operation
+  const { isLoading: isQuerying, execute: processQuery } = useAsyncOperation({
+    onSuccess: (data: any) => {
+      setQueryResult(data.response);
+      // Update transcript with new query
+      setTranscript({
+        ...transcript!,
+        queries: [...transcript!.queries, data],
+      });
+    },
+    onError: () => {
+      setError("Failed to process query");
+    },
+    errorMessage: "Failed to process query",
+  });
+
   useStrictModeEffect(() => {
     if (selectedAudioFile?.has_transcript) {
-      loadTranscript();
+      loadTranscript(async () => {
+        const response = await api.audioFiles.getTranscriptByAudioFile(
+          selectedAudioFile.id
+        );
+        if (response.success && response.data) {
+          return response.data;
+        }
+        throw new Error("Failed to load transcript");
+      });
     } else {
       setTranscript(null);
     }
   }, [selectedAudioFile, setTranscript]);
 
-  const loadTranscript = async () => {
-    if (!selectedAudioFile) return;
-
-    setIsLoading(true);
-    try {
-      const response = await api.audioFiles.getTranscriptByAudioFile(
-        selectedAudioFile.id
-      );
-      if (response.success && response.data) {
-        setTranscript(response.data);
-      }
-    } catch (error) {
-      console.error("Failed to load transcript:", error);
-      setError("Failed to load transcript");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleQuery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transcript || !query.trim()) return;
 
-    setIsQuerying(true);
     setQueryResult(null);
-
-    try {
-      const response = await api.transcripts.createTranscript(
-        transcript.id,
-        query.trim()
-      );
-      if (response.success && response.data) {
-        setQueryResult(response.data.response);
-        // Update transcript with new query
-        setTranscript({
-          ...transcript,
-          queries: [...transcript.queries, response.data],
-        });
-      }
-    } catch (error) {
-      console.error("Failed to process query:", error);
-      setError("Failed to process query");
-    } finally {
-      setIsQuerying(false);
-    }
+    await processQuery(() =>
+      apiService.handleResponse(
+        api.transcripts.createTranscript(transcript.id, query.trim())
+      )
+    );
   };
 
   const formatTime = (seconds: number) => {
