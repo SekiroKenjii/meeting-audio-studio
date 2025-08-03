@@ -32,9 +32,14 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const addAudioFile = useCallback((file: AudioFile) => {
     setAudioFiles((prev) => [file, ...prev]);
+  }, []);
+
+  const refreshTranscript = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   const updateAudioFile = useCallback(
@@ -89,6 +94,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       transcript,
       isLoading,
       error,
+      refreshTrigger,
       setAudioFiles,
       setSelectedAudioFile,
       setTranscript,
@@ -96,6 +102,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       setError,
       addAudioFile,
       updateAudioFile,
+      refreshTranscript,
     }),
     [
       audioFiles,
@@ -103,6 +110,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       transcript,
       isLoading,
       error,
+      refreshTrigger,
       setAudioFiles,
       setSelectedAudioFile,
       setTranscript,
@@ -110,6 +118,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       setError,
       addAudioFile,
       updateAudioFile,
+      refreshTranscript,
     ]
   );
 

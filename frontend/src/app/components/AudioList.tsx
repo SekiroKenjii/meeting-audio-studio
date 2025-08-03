@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ROUTES } from "../constants/routes";
 import { useAudio, useAudioData } from "../hooks";
 import { AudioFile } from "../types/audio";
@@ -14,11 +14,70 @@ interface AudioListProps {
 }
 
 const AudioList: React.FC<AudioListProps> = ({ showAll = false }) => {
-  const { selectedAudioFile, setSelectedAudioFile } = useAudio();
+  const { selectedAudioFile, setSelectedAudioFile, refreshTranscript } =
+    useAudio();
   const { audioFiles, isLoading } = useAudioData();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [visibleItems, setVisibleItems] = useState(3);
+  const [maxVisibleItems, setMaxVisibleItems] = useState(3); // Track the maximum items ever shown
+  const [minContainerHeight, setMinContainerHeight] = useState(0); // Track minimum container height
 
-  const handleFileSelect = (file: any) => {
-    setSelectedAudioFile(file);
+  // Calculate how many items can fit based on container height
+  useEffect(() => {
+    if (!showAll && containerRef.current && audioFiles.length > 0) {
+      const calculateVisibleItems = () => {
+        const containerHeight = containerRef.current!.clientHeight;
+        // Account for the "View all files" link height (approx 40px)
+        const availableHeight = containerHeight - 40;
+        const itemHeight = 96; // Approximate item height including spacing
+        const minItems = 3;
+        const maxItems = 10; // Maximum 10 items can show in AudioList
+
+        const calculatedItems = Math.max(
+          minItems,
+          Math.floor(availableHeight / itemHeight)
+        );
+        const newVisibleItems = Math.min(
+          calculatedItems,
+          audioFiles.length,
+          maxItems
+        );
+
+        // Only increase the visible items, never decrease (high-water mark behavior)
+        const finalVisibleItems = Math.max(newVisibleItems, maxVisibleItems);
+
+        // Calculate and maintain minimum container height based on max items
+        const minHeight = finalVisibleItems * itemHeight + 40; // +40 for "View all files" link
+
+        setVisibleItems(finalVisibleItems);
+        setMaxVisibleItems(finalVisibleItems);
+        setMinContainerHeight(minHeight);
+      };
+
+      // Use ResizeObserver for more accurate height tracking
+      const resizeObserver = new ResizeObserver(() => {
+        calculateVisibleItems();
+      });
+
+      resizeObserver.observe(containerRef.current);
+
+      // Initial calculation
+      setTimeout(calculateVisibleItems, 100); // Small delay to ensure layout is settled
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [showAll, audioFiles.length, maxVisibleItems, minContainerHeight]);
+
+  const handleFileSelect = (file: AudioFile) => {
+    if (selectedAudioFile?.id === file.id) {
+      // Same file selected - trigger a refresh
+      refreshTranscript();
+    } else {
+      // Different file selected
+      setSelectedAudioFile(file);
+    }
   };
 
   if (isLoading) {
@@ -62,147 +121,156 @@ const AudioList: React.FC<AudioListProps> = ({ showAll = false }) => {
   }
 
   return (
-    <div className="space-y-1">
-      {(showAll ? audioFiles : audioFiles.slice(0, 3)).map(
-        (file: AudioFile) => {
-          const statusConfig = getAudioStatusConfig(file.status);
-          const isSelected = selectedAudioFile?.id === file.id;
+    <div
+      ref={containerRef}
+      className="h-full flex flex-col"
+      style={{
+        minHeight:
+          minContainerHeight > 0 ? `${minContainerHeight}px` : undefined,
+      }}
+    >
+      <div className="flex-1 space-y-2">
+        {(showAll ? audioFiles : audioFiles.slice(0, visibleItems)).map(
+          (file: AudioFile) => {
+            const statusConfig = getAudioStatusConfig(file.status);
+            const isSelected = selectedAudioFile?.id === file.id;
 
-          return (
-            <div key={file.id} className="relative">
-              <button
-                type="button"
-                className={`
-                w-full text-left p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-medium
-                ${
-                  isSelected
-                    ? "border-gray-900 bg-gray-50 shadow-medium"
-                    : "border-gray-200 hover:border-gray-300"
-                }
-              `}
-                onClick={() => handleFileSelect(file)}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h4
-                        className="text-sm font-medium text-gray-900 truncate"
-                        title={file.filename}
-                      >
-                        {file.filename}
-                      </h4>
-                      {file.has_transcript && (
-                        <div className="flex items-center space-x-1 text-xs text-gray-500">
+            return (
+              <div key={file.id} className="relative">
+                <button
+                  type="button"
+                  className={`
+                    w-full text-left p-4 rounded-xl border cursor-pointer transition-all duration-200 hover:shadow-large
+                    ${
+                      isSelected
+                        ? "border-gray-900 bg-gray-50 shadow-large"
+                        : "border-gray-200 hover:border-gray-300"
+                    }
+                  `}
+                  onClick={() => handleFileSelect(file)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h4
+                          className="text-sm font-medium text-gray-900 truncate"
+                          title={file.filename}
+                        >
+                          {file.filename}
+                        </h4>
+                        {file.has_transcript && (
+                          <div className="flex items-center space-x-1 text-xs text-gray-500">
+                            <svg
+                              className="w-3 h-3"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            <span>Transcript</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <span className="flex items-center space-x-1 flex-shrink-0">
                           <svg
                             className="w-3 h-3"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
                           >
                             <path
-                              fillRule="evenodd"
-                              d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                              clipRule="evenodd"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                             />
                           </svg>
-                          <span>Transcript</span>
-                        </div>
+                          <span>{formatDuration(file.duration)}</span>
+                        </span>
+
+                        <span className="flex items-center space-x-1 flex-shrink-0">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span>{formatFileSize(file.file_size)}</span>
+                        </span>
+
+                        <span className="flex items-center space-x-1 flex-shrink-0">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          <span>{formatDate(file.created_at)}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="ml-4 flex items-center space-x-2">
+                      {file.status === "processing" && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
                       )}
-                    </div>
-
-                    <div className="flex items-center space-x-4 text-xs text-gray-500">
-                      <span className="flex items-center space-x-1">
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                        <span>{formatDuration(file.duration)}</span>
-                      </span>
-
-                      <span className="flex items-center space-x-1">
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <span>{formatFileSize(file.file_size)}</span>
-                      </span>
-
-                      <span className="flex items-center space-x-1">
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        <span>{formatDate(file.created_at)}</span>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${statusConfig.color}`}
+                      >
+                        {statusConfig.label}
                       </span>
                     </div>
                   </div>
+                </button>
 
-                  <div className="ml-4 flex items-center space-x-2">
-                    {file.status === "processing" && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                    )}
-                    <span
-                      className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${statusConfig.color}`}
+                {isSelected && (
+                  <div className="absolute z-50 -right-2 -top-2 w-4 h-4 bg-gray-900 rounded-full flex items-center justify-center pointer-events-none">
+                    <svg
+                      className="w-2.5 h-2.5 text-white"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
                     >
-                      {statusConfig.label}
-                    </span>
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
                   </div>
-                </div>
-              </button>
+                )}
+              </div>
+            );
+          }
+        )}
+      </div>
 
-              {isSelected && (
-                <div className="absolute -right-2 -top-2 w-4 h-4 bg-gray-900 rounded-full flex items-center justify-center z-20 pointer-events-none">
-                  <svg
-                    className="w-2.5 h-2.5 text-white"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              )}
-            </div>
-          );
-        }
-      )}
-
-      {!showAll && audioFiles.length > 3 && (
-        <div className="text-center pt-3">
+      {!showAll && audioFiles.length > visibleItems && (
+        <div className="text-center pt-3 flex-shrink-0">
           <a
             href={ROUTES.DASHBOARD_FILES}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center space-x-1"
           >
-            <span>View all {audioFiles.length} files</span>
+            <span>View all files</span>
             <svg
               className="w-4 h-4"
               fill="none"

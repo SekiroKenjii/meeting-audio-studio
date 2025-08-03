@@ -5,7 +5,13 @@ import { useAsyncOperation, useAudio, useStrictModeEffect } from "../hooks";
 import { TranscriptDiarizedSegment, TranscriptQuery } from "../types/audio";
 
 const TranscriptViewer: React.FC = () => {
-  const { selectedAudioFile, transcript, setTranscript, setError } = useAudio();
+  const {
+    selectedAudioFile,
+    transcript,
+    setTranscript,
+    setError,
+    refreshTrigger,
+  } = useAudio();
   const [query, setQuery] = useState("");
   const [queryResult, setQueryResult] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"diarized" | "full" | "queries">(
@@ -39,21 +45,38 @@ const TranscriptViewer: React.FC = () => {
     errorMessage: "Failed to process query",
   });
 
-  useStrictModeEffect(() => {
-    if (selectedAudioFile?.has_transcript) {
-      loadTranscript(async () => {
-        const response = await api.audioFiles.getTranscriptByAudioFile(
-          selectedAudioFile.id
-        );
-        if (response.success && response.data) {
-          return response.data;
-        }
-        throw new Error("Failed to load transcript");
-      });
-    } else {
-      setTranscript(null);
-    }
-  }, [selectedAudioFile, setTranscript]);
+  useStrictModeEffect(
+    () => {
+      // Reset state when audio file changes
+      setQuery("");
+      setQueryResult(null);
+      setActiveTab("diarized");
+      setError(null);
+
+      if (selectedAudioFile?.status === "processed") {
+        loadTranscript(async () => {
+          const response = await api.audioFiles.getTranscriptByAudioFile(
+            selectedAudioFile.id
+          );
+          if (response.success && response.data) {
+            return response.data;
+          }
+          throw new Error("Failed to load transcript");
+        });
+      } else {
+        setTranscript(null);
+      }
+    },
+    [
+      selectedAudioFile?.id,
+      selectedAudioFile?.status,
+      refreshTrigger,
+      setTranscript,
+      setError,
+      loadTranscript,
+    ],
+    "transcript-loader"
+  );
 
   const handleQuery = async (e: React.FormEvent) => {
     e.preventDefault();

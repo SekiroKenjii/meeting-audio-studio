@@ -73,6 +73,7 @@ export interface AudioContextType {
   transcript: Transcript | null;
   isLoading: boolean;
   error: string | null;
+  refreshTrigger: number;
 
   // Actions
   setAudioFiles: (files: AudioFile[]) => void;
@@ -82,4 +83,5 @@ export interface AudioContextType {
   setError: (error: string | null) => void;
   addAudioFile: (file: AudioFile) => void;
   updateAudioFile: (id: number, updates: Partial<AudioFile>) => void;
+  refreshTranscript: () => void;
 }

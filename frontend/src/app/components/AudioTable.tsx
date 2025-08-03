@@ -13,7 +13,8 @@ interface AudioTableProps {
 }
 
 const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
-  const { selectedAudioFile, setSelectedAudioFile } = useAudio();
+  const { selectedAudioFile, setSelectedAudioFile, refreshTranscript } =
+    useAudio();
   const { audioFiles, isLoading } = useAudioData();
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -27,10 +28,15 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
     setCurrentPage(page);
   };
 
-  const handleFileSelect = (file: any) => {
-    setSelectedAudioFile(file);
+  const handleFileSelect = (file: AudioFile) => {
+    if (selectedAudioFile?.id === file.id) {
+      // Same file selected - trigger a refresh
+      refreshTranscript();
+    } else {
+      // Different file selected
+      setSelectedAudioFile(file);
+    }
   };
-
   const renderTranscriptStatus = (file: any) => {
     if (file.has_transcript) {
       return (
