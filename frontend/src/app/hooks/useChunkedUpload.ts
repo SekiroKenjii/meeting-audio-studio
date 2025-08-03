@@ -63,12 +63,6 @@ export const useChunkedUpload = (options: UseChunkedUploadOptions = {}) => {
   const [currentSession, setCurrentSession] =
     useState<ChunkedUploadSession | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  // Use AbortController for robust cancellation.
-  // Previously, cancellation was managed using refs to store a boolean flag (e.g., isCancelled),
-  // which could lead to race conditions or missed cancellations in async operations.
-  // AbortController provides a standardized and more reliable way to signal and handle cancellation,
-  // especially with fetch and other web APIs, making the upload process more robust.
   const abortControllerRef = useRef<AbortController | null>(null);
   const startTimeRef = useRef<number>(0);
 

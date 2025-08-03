@@ -9,8 +9,6 @@ class Limits
 {
     // Conversion Constants
     public const int MB_TO_BYTES = 1048576; // 1024 * 1024;
-    public const int KB_TO_BYTES = 1024;
-    public const int GB_TO_BYTES = 1073741824;
 
     // File Size Limits
     public const int MAX_FILE_SIZE_BYTES         = 1073741824; // 1GB
@@ -23,6 +21,5 @@ class Limits
     public const int PROCESSING_TIMEOUT_SECONDS = 3600; // 1 hour for large files
 
     // Validation Limits
-    public const int MAX_QUERY_LENGTH    = 1000;
-    public const int MAX_FILENAME_LENGTH = 255;
+    public const int MAX_QUERY_LENGTH = 1000;
 }

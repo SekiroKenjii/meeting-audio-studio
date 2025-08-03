@@ -3,23 +3,12 @@ import { useToast } from "../hooks/useToast";
 import { setGlobalToastFunctions as setToastServiceFunctions } from "../services/toastService";
 
 const ToastInitializer: React.FC = () => {
-  const {
-    addToast,
-    removeToast,
-    showSuccess,
-    showError,
-    showWarning,
-    showInfo,
-  } = useToast();
+  const { addToast, removeToast } = useToast();
 
   useEffect(() => {
     const toastFunctions = {
       addToast,
       removeToast,
-      showSuccess,
-      showError,
-      showWarning,
-      showInfo,
     };
 
     // Set up global toast functions for ToastService
@@ -29,7 +18,7 @@ const ToastInitializer: React.FC = () => {
     return () => {
       setToastServiceFunctions(null);
     };
-  });
+  }, [addToast, removeToast]);
 
   return null;
 };

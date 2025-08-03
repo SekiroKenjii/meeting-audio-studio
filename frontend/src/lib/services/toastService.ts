@@ -4,10 +4,6 @@ import { ToastType, Toast } from "../types/toast";
 let globalToastFunctions: {
   addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
-  showSuccess: (title: string, message?: string) => void;
-  showError: (title: string, message?: string) => void;
-  showWarning: (title: string, message?: string) => void;
-  showInfo: (title: string, message?: string) => void;
 } | null = null;
 
 /**
@@ -38,16 +34,12 @@ export class ToastService {
       );
       return;
     }
-    if (duration !== undefined) {
-      globalToastFunctions.addToast({
-        type: "success",
-        title,
-        message,
-        duration,
-      });
-    } else {
-      globalToastFunctions.showSuccess(title, message);
-    }
+    globalToastFunctions.addToast({
+      type: "success",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**
@@ -63,16 +55,12 @@ export class ToastService {
       );
       return;
     }
-    if (duration !== undefined) {
-      globalToastFunctions.addToast({
-        type: "error",
-        title,
-        message,
-        duration,
-      });
-    } else {
-      globalToastFunctions.showError(title, message);
-    }
+    globalToastFunctions.addToast({
+      type: "error",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**
@@ -88,11 +76,12 @@ export class ToastService {
       );
       return;
     }
-    if (duration !== undefined) {
-      globalToastFunctions.addToast({ type: "info", title, message, duration });
-    } else {
-      globalToastFunctions.showInfo(title, message);
-    }
+    globalToastFunctions.addToast({
+      type: "info",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**
@@ -108,16 +97,12 @@ export class ToastService {
       );
       return;
     }
-    if (duration !== undefined) {
-      globalToastFunctions.addToast({
-        type: "warning",
-        title,
-        message,
-        duration,
-      });
-    } else {
-      globalToastFunctions.showWarning(title, message);
-    }
+    globalToastFunctions.addToast({
+      type: "warning",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**

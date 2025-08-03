@@ -1,9 +1,8 @@
 <?php
 
+use App\Constants\Limits;
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     /**
@@ -13,17 +12,17 @@ return new class extends Migration {
     {
         // Update app settings to 1GB limits
         DB::table('app_settings')->where('key', 'max_file_size_mb')->update([
-            'value' => 1024, // 1GB in MB
+            'value' => Limits::MAX_FILE_SIZE_MB,
         ]);
 
         DB::table('app_settings')->where('key', 'max_file_size_bytes')->update([
-            'value' => 1073741824, // 1GB in bytes
+            'value' => Limits::MAX_FILE_SIZE_BYTES,
         ]);
 
         // Update audio type configs to 1GB limits
         DB::table('audio_type_configs')->update([
-            'max_upload_size' => 1073741824, // 1GB
-            'compression_threshold' => 536870912, // 512MB
+            'max_upload_size' => Limits::MAX_FILE_SIZE_BYTES,
+            'compression_threshold' => Limits::COMPRESSION_THRESHOLD_BYTES, // 512MB
         ]);
     }
 
