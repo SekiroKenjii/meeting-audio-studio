@@ -45,6 +45,16 @@ class ApiService {
 
     return response.data;
   }
+
+  async handleResponse<T>(asyncResponse: Promise<ApiResponse<T>>): Promise<T> {
+    const response = await asyncResponse;
+
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.message || "API request failed");
+  }
 }
 
 export const apiService = new ApiService();

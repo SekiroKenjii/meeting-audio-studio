@@ -1,8 +1,9 @@
 import { ErrorType } from "@/lib/types/error";
+import { clearGlobalError, getGlobalError } from "@/lib/utils/errorHandler";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { clearGlobalError, getGlobalError } from "../../lib/utils/errorHandler";
-import { useStrictModeMountEffect } from "../hooks/useStrictModeEffect";
+import { ROUTES } from "../constants/routes";
+import { useStrictModeMountEffect } from "../hooks";
 
 interface ErrorPageProps {
   errorType?: ErrorType;
@@ -78,7 +79,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
   };
 
   const handleGoHome = () => {
-    navigate("/");
+    navigate(ROUTES.LANDING);
   };
 
   return (

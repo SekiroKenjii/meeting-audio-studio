@@ -18,7 +18,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
   const addToast = useCallback(
     (toast: Omit<Toast, "id">) => {
-      const id = Date.now().toString();
+      const id = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
       const newToast: Toast = { ...toast, id };
 
       setToasts((prev) => [...prev, newToast]);
@@ -56,7 +56,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
   const showInfo = useCallback(
     (title: string, message?: string) => {
-      addToast({ type: "info", title, message });
+      addToast({ type: "info", title, message, duration: 4000 }); // Add duration for auto-close
     },
     [addToast]
   );

@@ -60,7 +60,8 @@ export const redirectToErrorPage = (error: ApiError) => {
   });
 
   // Use window.location to force a full page navigation
-  // This ensures we leave the current app state completely
+  // This ensures we leave the current app state completely and provides
+  // a clean recovery path for severe API/network errors
   window.location.href = "/error";
 };
 

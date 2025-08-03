@@ -1,7 +1,9 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import DemoBanner from "../components/DemoBanner";
 import Sidebar from "../components/Sidebar";
+import { EVENTS } from "../constants/events";
+import { getRouteInfo, ROUTES } from "../constants/routes";
 import { useSidebar } from "../hooks";
 
 interface DashboardLayoutProps {
@@ -11,39 +13,26 @@ interface DashboardLayoutProps {
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   const { isCollapsed } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Function to trigger file upload
+  const handleUploadClick = () => {
+    const pagesWithUpload = [ROUTES.DASHBOARD, ROUTES.DASHBOARD_FILES];
+    const currentPath = location.pathname;
+
+    if (pagesWithUpload.includes(currentPath)) {
+      const uploadEvent = new CustomEvent(EVENTS.TRIGGER_FILE_UPLOAD);
+      window.dispatchEvent(uploadEvent);
+    } else {
+      navigate(ROUTES.DASHBOARD_FILES);
+    }
+  };
 
   // Get page info based on current route
   const getPageInfo = () => {
     const path = location.pathname;
 
-    switch (path) {
-      case "/dashboard/files":
-        return {
-          title: "Audio Files",
-          description: "View and manage all your uploaded audio files",
-        };
-      case "/dashboard/transcripts":
-        return {
-          title: "Transcripts",
-          description: "View and manage your audio transcripts",
-        };
-      case "/dashboard/analytics":
-        return {
-          title: "Analytics",
-          description: "View insights and analytics for your audio files",
-        };
-      case "/dashboard/settings":
-        return {
-          title: "Settings",
-          description: "Configure your account and application preferences",
-        };
-      case "/dashboard":
-      default:
-        return {
-          title: "Dashboard",
-          description: "Manage your audio files and transcriptions",
-        };
-    }
+    return getRouteInfo(path);
   };
 
   const pageInfo = getPageInfo();
@@ -71,13 +60,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <Link
-                to="/"
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                ← Back to Home
-              </Link>
-              <button className="btn btn-primary">
+              <button className="btn btn-primary" onClick={handleUploadClick}>
                 <svg
                   className="w-4 h-4 mr-2"
                   fill="none"

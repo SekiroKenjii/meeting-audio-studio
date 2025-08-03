@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { useAudio } from "../hooks";
-import { useAudioData } from "../hooks/useAudioData";
+import { useAudio, useAudioData } from "../hooks";
 import { AudioFile } from "../types/audio";
 import { getAudioStatusConfig } from "../utils/audioStatus";
 import {
@@ -114,7 +113,7 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
     <div className="space-y-4">
       {/* Table */}
       <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
-        <table className="min-w-full sm:min-w-[800px] divide-y divide-gray-300">
+        <table className="min-w-full divide-y divide-gray-300">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-48">

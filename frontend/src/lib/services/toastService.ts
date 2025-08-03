@@ -4,10 +4,6 @@ import { ToastType, Toast } from "../types/toast";
 let globalToastFunctions: {
   addToast: (toast: Omit<Toast, "id">) => void;
   removeToast: (id: string) => void;
-  showSuccess: (title: string, message?: string) => void;
-  showError: (title: string, message?: string) => void;
-  showWarning: (title: string, message?: string) => void;
-  showInfo: (title: string, message?: string) => void;
 } | null = null;
 
 /**
@@ -29,76 +25,107 @@ export class ToastService {
    * Shows a success toast notification
    * @param title - The main message to display
    * @param message - Optional secondary message
+   * @param duration - Optional duration in milliseconds
    */
-  static success(title: string, message?: string): void {
+  static success(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
       console.warn(
         "Toast service not initialized. Make sure ToastProvider is setup."
       );
       return;
     }
-    globalToastFunctions.showSuccess(title, message);
+    globalToastFunctions.addToast({
+      type: "success",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**
    * Shows an error toast notification
    * @param title - The main message to display
    * @param message - Optional secondary message
+   * @param duration - Optional duration in milliseconds
    */
-  static error(title: string, message?: string): void {
+  static error(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
       console.warn(
         "Toast service not initialized. Make sure ToastProvider is setup."
       );
       return;
     }
-    globalToastFunctions.showError(title, message);
+    globalToastFunctions.addToast({
+      type: "error",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**
    * Shows an info toast notification
    * @param title - The main message to display
    * @param message - Optional secondary message
+   * @param duration - Optional duration in milliseconds
    */
-  static info(title: string, message?: string): void {
+  static info(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
       console.warn(
         "Toast service not initialized. Make sure ToastProvider is setup."
       );
       return;
     }
-    globalToastFunctions.showInfo(title, message);
+    globalToastFunctions.addToast({
+      type: "info",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**
    * Shows a warning toast notification
    * @param title - The main message to display
    * @param message - Optional secondary message
+   * @param duration - Optional duration in milliseconds
    */
-  static warning(title: string, message?: string): void {
+  static warning(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
       console.warn(
         "Toast service not initialized. Make sure ToastProvider is setup."
       );
       return;
     }
-    globalToastFunctions.showWarning(title, message);
+    globalToastFunctions.addToast({
+      type: "warning",
+      title,
+      message,
+      duration,
+    });
   }
 
   /**
    * Shows a loading toast notification (using info style with semantic meaning for loading states)
    * @param title - The main message to display
    * @param message - Optional secondary message
+   * @param duration - Optional duration in milliseconds (defaults to persistent if not specified)
    */
-  static loading(title: string, message?: string): void {
+  static loading(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
       console.warn(
         "Toast service not initialized. Make sure ToastProvider is setup."
       );
       return;
     }
-    // Use info style but with semantic intent for loading operations
-    globalToastFunctions.showInfo(title, message);
+    // Loading toasts are typically persistent unless duration is explicitly set
+    globalToastFunctions.addToast({
+      type: "info",
+      title,
+      message,
+      duration: duration,
+      persistent: duration === undefined, // Make persistent if no duration specified
+    });
   }
 
   /**
@@ -250,33 +277,37 @@ export class ToastService {
   /**
    * Shows a simple success message
    * @param message - The message to display as title
+   * @param duration - Optional duration in milliseconds
    */
-  static successMessage(message: string): void {
-    this.success(message);
+  static successMessage(message: string, duration?: number): void {
+    this.success(message, undefined, duration);
   }
 
   /**
    * Shows a simple error message
    * @param message - The message to display as title
+   * @param duration - Optional duration in milliseconds
    */
-  static errorMessage(message: string): void {
-    this.error(message);
+  static errorMessage(message: string, duration?: number): void {
+    this.error(message, undefined, duration);
   }
 
   /**
    * Shows a simple info message
    * @param message - The message to display as title
+   * @param duration - Optional duration in milliseconds
    */
-  static infoMessage(message: string): void {
-    this.info(message);
+  static infoMessage(message: string, duration?: number): void {
+    this.info(message, undefined, duration);
   }
 
   /**
    * Shows a simple warning message
    * @param message - The message to display as title
+   * @param duration - Optional duration in milliseconds
    */
-  static warningMessage(message: string): void {
-    this.warning(message);
+  static warningMessage(message: string, duration?: number): void {
+    this.warning(message, undefined, duration);
   }
 }
 
