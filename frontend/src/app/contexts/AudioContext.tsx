@@ -1,9 +1,3 @@
-import {
-  AudioContextType,
-  AudioFile,
-  AudioFileStatus,
-  Transcript,
-} from "@/app/types/audio";
 import React, {
   createContext,
   ReactNode,
@@ -15,6 +9,26 @@ import React, {
 import websocketService, {
   AudioFileStatusUpdate,
 } from "../services/websocketService";
+import { AudioFile, AudioFileStatus, Transcript } from "../types/audio";
+
+interface AudioContextType {
+  audioFiles: AudioFile[];
+  selectedAudioFile: AudioFile | null;
+  transcript: Transcript | null;
+  isLoading: boolean;
+  error: string | null;
+  refreshTrigger: number;
+
+  // Actions
+  setAudioFiles: (files: AudioFile[]) => void;
+  setSelectedAudioFile: (file: AudioFile | null) => void;
+  setTranscript: (transcript: Transcript | null) => void;
+  setIsLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  addAudioFile: (file: AudioFile) => void;
+  updateAudioFile: (id: number, updates: Partial<AudioFile>) => void;
+  refreshTranscript: () => void;
+}
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
@@ -32,9 +46,14 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
   const [transcript, setTranscript] = useState<Transcript | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const addAudioFile = useCallback((file: AudioFile) => {
     setAudioFiles((prev) => [file, ...prev]);
+  }, []);
+
+  const refreshTranscript = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
   }, []);
 
   const updateAudioFile = useCallback(
@@ -89,6 +108,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       transcript,
       isLoading,
       error,
+      refreshTrigger,
       setAudioFiles,
       setSelectedAudioFile,
       setTranscript,
@@ -96,6 +116,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       setError,
       addAudioFile,
       updateAudioFile,
+      refreshTranscript,
     }),
     [
       audioFiles,
@@ -103,6 +124,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       transcript,
       isLoading,
       error,
+      refreshTrigger,
       setAudioFiles,
       setSelectedAudioFile,
       setTranscript,
@@ -110,6 +132,7 @@ export const AudioProvider: React.FC<AudioProviderProps> = ({ children }) => {
       setError,
       addAudioFile,
       updateAudioFile,
+      refreshTranscript,
     ]
   );
 

@@ -1,11 +1,18 @@
-export type AudioFileStatus =
-  | "uploading"
-  | "uploaded"
-  | "processing"
-  | "processed"
-  | "transcribing"
-  | "transcribed"
-  | "failed";
+export interface AudioStatusConfig {
+  color: string;
+  label: string;
+}
+
+export enum AudioFileStatus {
+  Uploading = "uploading",
+  Uploaded = "uploaded",
+  Processing = "processing",
+  Processed = "processed",
+  Transcribing = "transcribing",
+  Transcribed = "transcribed",
+  Completed = "completed",
+  Failed = "failed",
+}
 
 export interface AudioFile {
   id: number;
@@ -65,21 +72,4 @@ export interface UploadConfig {
   max_file_size_bytes: number;
   compression_threshold_mb: number;
   compression_threshold_bytes: number;
-}
-
-export interface AudioContextType {
-  audioFiles: AudioFile[];
-  selectedAudioFile: AudioFile | null;
-  transcript: Transcript | null;
-  isLoading: boolean;
-  error: string | null;
-
-  // Actions
-  setAudioFiles: (files: AudioFile[]) => void;
-  setSelectedAudioFile: (file: AudioFile | null) => void;
-  setTranscript: (transcript: Transcript | null) => void;
-  setIsLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  addAudioFile: (file: AudioFile) => void;
-  updateAudioFile: (id: number, updates: Partial<AudioFile>) => void;
 }

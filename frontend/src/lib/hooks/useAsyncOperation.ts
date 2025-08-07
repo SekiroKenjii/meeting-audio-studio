@@ -1,5 +1,5 @@
-import ToastService from "@/lib/services/toastService";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import ToastService from "../services/toastService";
 
 interface UseAsyncOperationOptions<T> {
   onSuccess?: (data: T) => void;
@@ -37,15 +37,31 @@ export const useAsyncOperation = <T = any>(
     error: null,
   });
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const execute = useCallback(
     async <TResult = T>(
       asyncFn: () => Promise<TResult>,
       overrideOptions?: Partial<UseAsyncOperationOptions<TResult>>
     ): Promise<TResult | null> => {
+      // Cancel any previous operation
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller for this operation
+      abortControllerRef.current = new AbortController();
+      const currentController = abortControllerRef.current;
+
       setState({ isLoading: true, error: null });
 
       try {
         const result = await asyncFn();
+
+        // Check if this operation was cancelled
+        if (currentController.signal.aborted) {
+          return null;
+        }
 
         // Handle success
         onSuccess?.(result as unknown as T);
@@ -61,6 +77,11 @@ export const useAsyncOperation = <T = any>(
         setState({ isLoading: false, error: null });
         return result;
       } catch (error) {
+        // Check if this operation was cancelled
+        if (currentController.signal.aborted) {
+          return null;
+        }
+
         const errorObj =
           error instanceof Error ? error : new Error("Unknown error");
         const errorMsg = errorObj.message || errorMessage;
@@ -98,6 +119,19 @@ export const useAsyncOperation = <T = any>(
   );
 
   const reset = useCallback(() => {
+    // Cancel any ongoing operation
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setState({ isLoading: false, error: null });
+  }, []);
+
+  const cancel = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setState({ isLoading: false, error: null });
   }, []);
 
@@ -105,5 +139,6 @@ export const useAsyncOperation = <T = any>(
     ...state,
     execute,
     reset,
+    cancel,
   };
 };

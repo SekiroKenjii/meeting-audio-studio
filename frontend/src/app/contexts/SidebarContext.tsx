@@ -1,5 +1,9 @@
-import { SidebarContextType } from "@/app/types/sidebar";
 import React, { createContext, ReactNode, useMemo, useState } from "react";
+
+interface SidebarContextType {
+  isCollapsed: boolean;
+  setIsCollapsed: (collapsed: boolean) => void;
+}
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 

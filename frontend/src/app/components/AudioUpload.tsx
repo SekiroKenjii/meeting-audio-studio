@@ -1,8 +1,9 @@
+import { useStrictModeMountEffect } from "@/lib/hooks";
 import ToastService from "@/lib/services/toastService";
 import { api } from "@/sdk/services";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { EVENTS } from "../constants/events";
-import { useAudio, useChunkedUpload, useStrictModeMountEffect } from "../hooks";
+import { useAudio, useChunkedUpload } from "../hooks";
 import { UploadConfig } from "../types/audio";
 import FilenameConfirmDialog from "./FilenameConfirmDialog";
 

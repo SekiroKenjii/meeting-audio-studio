@@ -32,7 +32,7 @@ const Dashboard: React.FC = () => {
 
           {/* Transcript Viewer */}
           <div className="lg:col-span-2 flex">
-            <div className="card p-6 flex flex-col w-full">
+            <div className="card p-6 flex flex-col w-full min-h-[400px]">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex-shrink-0">
                 Transcript & Analysis
               </h3>
