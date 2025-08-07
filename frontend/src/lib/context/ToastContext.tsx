@@ -1,5 +1,11 @@
 import React, { createContext, useCallback, useMemo, useState } from "react";
-import { Toast, ToastContextType } from "../types/toast";
+import { Toast } from "../types/toast";
+
+interface ToastContextType {
+  toasts: Toast[];
+  addToast: (toast: Omit<Toast, "id">) => void;
+  removeToast: (id: string) => void;
+}
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
@@ -33,53 +39,13 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     [removeToast]
   );
 
-  const showSuccess = useCallback(
-    (title: string, message?: string) => {
-      addToast({ type: "success", title, message });
-    },
-    [addToast]
-  );
-
-  const showError = useCallback(
-    (title: string, message?: string) => {
-      addToast({ type: "error", title, message, duration: 8000 }); // Longer duration for errors
-    },
-    [addToast]
-  );
-
-  const showWarning = useCallback(
-    (title: string, message?: string) => {
-      addToast({ type: "warning", title, message, duration: 6000 });
-    },
-    [addToast]
-  );
-
-  const showInfo = useCallback(
-    (title: string, message?: string) => {
-      addToast({ type: "info", title, message, duration: 4000 }); // Add duration for auto-close
-    },
-    [addToast]
-  );
-
   const value: ToastContextType = useMemo(
     () => ({
       toasts,
       addToast,
       removeToast,
-      showSuccess,
-      showError,
-      showWarning,
-      showInfo,
     }),
-    [
-      toasts,
-      addToast,
-      removeToast,
-      showSuccess,
-      showError,
-      showWarning,
-      showInfo,
-    ]
+    [toasts, addToast, removeToast]
   );
 
   return (

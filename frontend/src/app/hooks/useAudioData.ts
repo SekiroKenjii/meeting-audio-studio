@@ -1,7 +1,7 @@
+import { useAsyncOperation, useStrictModeMountEffect } from "@/lib/hooks";
 import { apiService } from "@/lib/services/apiService";
 import { api } from "@/sdk/services";
-import { useAsyncOperation, useAudio } from "../hooks";
-import { useStrictModeMountEffect } from "./useStrictModeEffect";
+import { useAudio } from "../hooks";
 
 /**
  * Custom hook for managing audio files data fetching and polling

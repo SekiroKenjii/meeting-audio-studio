@@ -1,9 +1,3 @@
-import {
-  AudioContextType,
-  AudioFile,
-  AudioFileStatus,
-  Transcript,
-} from "@/app/types/audio";
 import React, {
   createContext,
   ReactNode,
@@ -15,6 +9,26 @@ import React, {
 import websocketService, {
   AudioFileStatusUpdate,
 } from "../services/websocketService";
+import { AudioFile, AudioFileStatus, Transcript } from "../types/audio";
+
+interface AudioContextType {
+  audioFiles: AudioFile[];
+  selectedAudioFile: AudioFile | null;
+  transcript: Transcript | null;
+  isLoading: boolean;
+  error: string | null;
+  refreshTrigger: number;
+
+  // Actions
+  setAudioFiles: (files: AudioFile[]) => void;
+  setSelectedAudioFile: (file: AudioFile | null) => void;
+  setTranscript: (transcript: Transcript | null) => void;
+  setIsLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  addAudioFile: (file: AudioFile) => void;
+  updateAudioFile: (id: number, updates: Partial<AudioFile>) => void;
+  refreshTranscript: () => void;
+}
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 

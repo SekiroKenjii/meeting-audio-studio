@@ -7,24 +7,39 @@ interface ToastProps {
   onRemove: (id: string) => void;
 }
 
+const ANIMATION_CONFIG = {
+  ENTER_DELAY: 0,
+  EXIT_DURATION: 300,
+} as const;
+
 const Toast: React.FC<ToastProps> = ({ toast, onRemove }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
   useEffect(() => {
-    // Trigger enter animation
-    const timer = setTimeout(() => setIsVisible(true), 10);
-    return () => clearTimeout(timer);
+    // Use requestAnimationFrame for more reliable timing
+    // This ensures the animation starts after the DOM has been updated
+    const animationFrame = requestAnimationFrame(() => {
+      setIsVisible(true);
+    });
+
+    return () => cancelAnimationFrame(animationFrame);
   }, []);
 
   const handleRemove = () => {
     setIsLeaving(true);
-    setTimeout(() => onRemove(toast.id), 300); // Animation duration
+    // Use a timer for the exit animation duration
+    const exitTimer = setTimeout(
+      () => onRemove(toast.id),
+      ANIMATION_CONFIG.EXIT_DURATION
+    );
+
+    // Cleanup in case component unmounts during animation
+    return () => clearTimeout(exitTimer);
   };
 
   const getToastStyles = () => {
-    const baseStyles =
-      "max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transition-all duration-300 ease-in-out transform";
+    const baseStyles = `max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden transition-all duration-${ANIMATION_CONFIG.EXIT_DURATION} ease-in-out transform`;
 
     if (isLeaving) {
       return `${baseStyles} translate-x-full opacity-0`;

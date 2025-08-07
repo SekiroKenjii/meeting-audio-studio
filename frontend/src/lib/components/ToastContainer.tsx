@@ -1,5 +1,5 @@
 import React from "react";
-import { useToast } from "../hooks/useToast";
+import { useToast } from "../hooks";
 import { Toast as ToastType } from "../types/toast";
 import Toast from "./Toast";
 

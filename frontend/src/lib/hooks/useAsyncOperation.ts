@@ -1,5 +1,5 @@
-import ToastService from "@/lib/services/toastService";
 import { useCallback, useRef, useState } from "react";
+import ToastService from "../services/toastService";
 
 interface UseAsyncOperationOptions<T> {
   onSuccess?: (data: T) => void;

@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { ROUTES } from "../constants/routes";
 import { useAudio, useAudioData } from "../hooks";
-import { AudioFile } from "../types/audio";
+import { useDynamicAudioItemHeight } from "../hooks/useDynamicAudioItemHeight";
+import { AudioFile, AudioFileStatus } from "../types/audio";
 import { getAudioStatusConfig } from "../utils/audioStatus";
 import {
   formatDate,
@@ -13,69 +14,31 @@ interface AudioListProps {
   showAll?: boolean;
 }
 
+const LAYOUT_CONFIG = {
+  MIN_ITEMS: 3,
+  MAX_ITEMS: 10,
+  EXTRA_HEIGHT: 40, // Height for "View all files" link
+  ITEM_SELECTOR: "[data-audio-item]",
+} as const;
+
 const AudioList: React.FC<AudioListProps> = ({ showAll = false }) => {
   const { selectedAudioFile, setSelectedAudioFile, refreshTranscript } =
     useAudio();
   const { audioFiles, isLoading } = useAudioData();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [visibleItems, setVisibleItems] = useState(3);
-  const [maxVisibleItems, setMaxVisibleItems] = useState(3); // Track the maximum items ever shown
-  const [minContainerHeight, setMinContainerHeight] = useState(0); // Track minimum container height
 
-  // Calculate how many items can fit based on container height
-  useEffect(() => {
-    if (!showAll && containerRef.current && audioFiles.length > 0) {
-      const calculateVisibleItems = () => {
-        const containerHeight = containerRef.current!.clientHeight;
-        // Account for the "View all files" link height (approx 40px)
-        const availableHeight = containerHeight - 40;
-        const itemHeight = 96; // Approximate item height including spacing
-        const minItems = 3;
-        const maxItems = 10; // Maximum 10 items can show in AudioList
-
-        const calculatedItems = Math.max(
-          minItems,
-          Math.floor(availableHeight / itemHeight)
-        );
-        const newVisibleItems = Math.min(
-          calculatedItems,
-          audioFiles.length,
-          maxItems
-        );
-
-        // Only increase the visible items, never decrease (high-water mark behavior)
-        const finalVisibleItems = Math.max(newVisibleItems, maxVisibleItems);
-
-        // Calculate and maintain minimum container height based on max items
-        const minHeight = finalVisibleItems * itemHeight + 40; // +40 for "View all files" link
-
-        setVisibleItems(finalVisibleItems);
-        setMaxVisibleItems(finalVisibleItems);
-        setMinContainerHeight(minHeight);
-      };
-
-      // Use ResizeObserver for more accurate height tracking
-      const resizeObserver = new ResizeObserver(() => {
-        calculateVisibleItems();
-      });
-
-      resizeObserver.observe(containerRef.current);
-
-      // Initial calculation
-      setTimeout(calculateVisibleItems, 100); // Small delay to ensure layout is settled
-
-      return () => {
-        resizeObserver.disconnect();
-      };
-    }
-  }, [showAll, audioFiles.length, maxVisibleItems, minContainerHeight]);
+  const { containerRef, visibleItems, minContainerHeight } =
+    useDynamicAudioItemHeight(audioFiles.length, {
+      minItems: LAYOUT_CONFIG.MIN_ITEMS,
+      maxItems: LAYOUT_CONFIG.MAX_ITEMS,
+      extraHeight: LAYOUT_CONFIG.EXTRA_HEIGHT,
+      itemSelector: LAYOUT_CONFIG.ITEM_SELECTOR,
+      highWaterMark: !showAll,
+    });
 
   const handleFileSelect = (file: AudioFile) => {
     if (selectedAudioFile?.id === file.id) {
-      // Same file selected - trigger a refresh
       refreshTranscript();
     } else {
-      // Different file selected
       setSelectedAudioFile(file);
     }
   };
@@ -136,7 +99,7 @@ const AudioList: React.FC<AudioListProps> = ({ showAll = false }) => {
             const isSelected = selectedAudioFile?.id === file.id;
 
             return (
-              <div key={file.id} className="relative">
+              <div key={file.id} className="relative" data-audio-item>
                 <button
                   type="button"
                   className={`
@@ -231,7 +194,7 @@ const AudioList: React.FC<AudioListProps> = ({ showAll = false }) => {
                     </div>
 
                     <div className="ml-4 flex items-center space-x-2">
-                      {file.status === "processing" && (
+                      {file.status === AudioFileStatus.Processing && (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
                       )}
                       <span

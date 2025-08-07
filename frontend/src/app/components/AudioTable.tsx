@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAudio, useAudioData } from "../hooks";
-import { AudioFile } from "../types/audio";
+import { AudioFile, AudioFileStatus } from "../types/audio";
 import { getAudioStatusConfig } from "../utils/audioStatus";
 import {
   formatDate,
@@ -150,7 +150,8 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
               const statusConfig = getAudioStatusConfig(file.status);
               const isSelected = selectedAudioFile?.id === file.id;
               const isLoading =
-                file.status === "uploading" || file.status === "processing";
+                file.status === AudioFileStatus.Uploading ||
+                file.status === AudioFileStatus.Processing;
               const showTopBorder =
                 index > 0 &&
                 !isSelected &&
@@ -175,8 +176,7 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-8 w-8">
                         <div className="h-8 w-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                          {file.status === "uploading" ||
-                          file.status === "processing" ? (
+                          {isLoading ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
                           ) : (
                             <svg
@@ -207,7 +207,7 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {file.status === "uploading" ? (
+                    {file.status === AudioFileStatus.Uploading ? (
                       <div className="flex items-center">
                         <div className="animate-pulse bg-gray-200 rounded h-4 w-16"></div>
                       </div>
@@ -216,7 +216,7 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {file.status === "uploading" ? (
+                    {file.status === AudioFileStatus.Uploading ? (
                       <div className="flex items-center">
                         <div className="animate-pulse bg-gray-200 rounded h-4 w-12"></div>
                       </div>
@@ -233,7 +233,7 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
                           {statusConfig.label}
                         </span>
                         {/* Show progress bar for processing files */}
-                        {file.status === "processing" &&
+                        {file.status === AudioFileStatus.Processing &&
                           file.processing_progress !== undefined && (
                             <div className="mt-1 w-24">
                               <div className="bg-gray-200 rounded-full h-1.5">
@@ -253,7 +253,7 @@ const AudioTable: React.FC<AudioTableProps> = ({ itemsPerPage = 10 }) => {
                             </div>
                           )}
                         {/* Show upload progress for uploading files */}
-                        {file.status === "uploading" && (
+                        {file.status === AudioFileStatus.Uploading && (
                           <div className="mt-1 w-24">
                             <div className="bg-gray-200 rounded-full h-1.5">
                               <div className="bg-green-500 h-1.5 rounded-full animate-pulse"></div>

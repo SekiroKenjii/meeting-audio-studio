@@ -1,8 +1,13 @@
+import { useAsyncOperation, useStrictModeEffect } from "@/lib/hooks";
 import { apiService } from "@/lib/services/apiService";
 import { api } from "@/sdk/services";
 import React, { useState } from "react";
-import { useAsyncOperation, useAudio, useStrictModeEffect } from "../hooks";
-import { TranscriptDiarizedSegment, TranscriptQuery } from "../types/audio";
+import { useAudio } from "../hooks";
+import {
+  AudioFileStatus,
+  TranscriptDiarizedSegment,
+  TranscriptQuery,
+} from "../types/audio";
 
 const TranscriptViewer: React.FC = () => {
   const {
@@ -33,7 +38,6 @@ const TranscriptViewer: React.FC = () => {
   const { isLoading: isQuerying, execute: processQuery } = useAsyncOperation({
     onSuccess: (data: any) => {
       setQueryResult(data.response);
-      // Update transcript with new query
       setTranscript({
         ...transcript!,
         queries: [...transcript!.queries, data],
@@ -53,7 +57,7 @@ const TranscriptViewer: React.FC = () => {
       setActiveTab("diarized");
       setError(null);
 
-      if (selectedAudioFile?.status === "processed") {
+      if (selectedAudioFile?.status === AudioFileStatus.Processed) {
         loadTranscript(async () => {
           const response = await api.audioFiles.getTranscriptByAudioFile(
             selectedAudioFile.id
@@ -156,13 +160,13 @@ const TranscriptViewer: React.FC = () => {
           {selectedAudioFile.filename}
         </h3>
         <p className="text-gray-600 mb-4">
-          {selectedAudioFile.status === "failed"
+          {selectedAudioFile.status === AudioFileStatus.Failed
             ? "Processing failed. Please try uploading the file again."
-            : selectedAudioFile.status === "processing"
+            : selectedAudioFile.status === AudioFileStatus.Processing
             ? "Audio is being processed. Transcript will be available shortly."
             : "Transcript not yet available for this file."}
         </p>
-        {selectedAudioFile.status === "processing" && (
+        {selectedAudioFile.status === AudioFileStatus.Processing && (
           <div className="inline-flex items-center space-x-2 text-sm text-gray-600">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
             <span>Processing audio...</span>

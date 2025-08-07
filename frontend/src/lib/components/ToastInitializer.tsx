@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useToast } from "../hooks/useToast";
+import { useToast } from "../hooks";
 import { setGlobalToastFunctions as setToastServiceFunctions } from "../services/toastService";
 
 const ToastInitializer: React.FC = () => {

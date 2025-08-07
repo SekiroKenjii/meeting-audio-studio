@@ -21,6 +21,12 @@ export const setGlobalToastFunctions = (
  * throughout the application without needing to import context directly
  */
 export class ToastService {
+  private static readonly _toastNotInitWarning = () => {
+    console.warn(
+      "Toast service not initialized. Make sure ToastProvider is setup."
+    );
+  };
+
   /**
    * Shows a success toast notification
    * @param title - The main message to display
@@ -29,16 +35,14 @@ export class ToastService {
    */
   static success(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
-      console.warn(
-        "Toast service not initialized. Make sure ToastProvider is setup."
-      );
+      this._toastNotInitWarning();
       return;
     }
     globalToastFunctions.addToast({
-      type: "success",
+      type: ToastType.Success,
       title,
       message,
-      duration,
+      duration: duration || 4000,
     });
   }
 
@@ -50,16 +54,14 @@ export class ToastService {
    */
   static error(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
-      console.warn(
-        "Toast service not initialized. Make sure ToastProvider is setup."
-      );
+      this._toastNotInitWarning();
       return;
     }
     globalToastFunctions.addToast({
-      type: "error",
+      type: ToastType.Error,
       title,
       message,
-      duration,
+      duration: duration || 8000,
     });
   }
 
@@ -71,16 +73,14 @@ export class ToastService {
    */
   static info(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
-      console.warn(
-        "Toast service not initialized. Make sure ToastProvider is setup."
-      );
+      this._toastNotInitWarning();
       return;
     }
     globalToastFunctions.addToast({
-      type: "info",
+      type: ToastType.Info,
       title,
       message,
-      duration,
+      duration: duration || 4000,
     });
   }
 
@@ -92,16 +92,14 @@ export class ToastService {
    */
   static warning(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
-      console.warn(
-        "Toast service not initialized. Make sure ToastProvider is setup."
-      );
+      this._toastNotInitWarning();
       return;
     }
     globalToastFunctions.addToast({
-      type: "warning",
+      type: ToastType.Warning,
       title,
       message,
-      duration,
+      duration: duration || 6000,
     });
   }
 
@@ -113,14 +111,12 @@ export class ToastService {
    */
   static loading(title: string, message?: string, duration?: number): void {
     if (!globalToastFunctions) {
-      console.warn(
-        "Toast service not initialized. Make sure ToastProvider is setup."
-      );
+      this._toastNotInitWarning();
       return;
     }
     // Loading toasts are typically persistent unless duration is explicitly set
     globalToastFunctions.addToast({
-      type: "info",
+      type: ToastType.Info,
       title,
       message,
       duration: duration,
@@ -134,9 +130,7 @@ export class ToastService {
    */
   static remove(id: string): void {
     if (!globalToastFunctions) {
-      console.warn(
-        "Toast service not initialized. Make sure ToastProvider is setup."
-      );
+      this._toastNotInitWarning();
       return;
     }
     globalToastFunctions.removeToast(id);
@@ -153,14 +147,12 @@ export class ToastService {
   static show(
     title: string,
     message?: string,
-    type: ToastType = "info",
+    type: ToastType = ToastType.Info,
     duration?: number,
     persistent?: boolean
   ): void {
     if (!globalToastFunctions) {
-      console.warn(
-        "Toast service not initialized. Make sure ToastProvider is setup."
-      );
+      this._toastNotInitWarning();
       return;
     }
     globalToastFunctions.addToast({
@@ -216,98 +208,6 @@ export class ToastService {
 
       throw err;
     }
-  }
-
-  /**
-   * Utility method to handle API responses with automatic toast notifications
-   * @param apiCall - Function that returns a promise
-   * @param options - Configuration options
-   */
-  static async handleApiCall<T>(
-    apiCall: () => Promise<T>,
-    options: {
-      successMessage?:
-        | { title: string; message?: string }
-        | ((data: T) => { title: string; message?: string });
-      errorMessage?:
-        | { title: string; message?: string }
-        | ((error: any) => { title: string; message?: string });
-      loadingMessage?: { title: string; message?: string };
-      showSuccess?: boolean;
-      showError?: boolean;
-    } = {}
-  ): Promise<T> {
-    const {
-      successMessage,
-      errorMessage = { title: "Error", message: "An error occurred" },
-      loadingMessage,
-      showSuccess = true,
-      showError = true,
-    } = options;
-
-    try {
-      if (loadingMessage) {
-        this.loading(loadingMessage.title, loadingMessage.message);
-      }
-
-      const result = await apiCall();
-
-      if (showSuccess && successMessage) {
-        const config =
-          typeof successMessage === "function"
-            ? successMessage(result)
-            : successMessage;
-        this.success(config.title, config.message);
-      }
-
-      return result;
-    } catch (error) {
-      if (showError) {
-        const config =
-          typeof errorMessage === "function"
-            ? errorMessage(error)
-            : errorMessage;
-        this.error(config.title, config.message);
-      }
-      throw error;
-    }
-  }
-
-  // Convenience methods for simple messages (backward compatibility)
-  /**
-   * Shows a simple success message
-   * @param message - The message to display as title
-   * @param duration - Optional duration in milliseconds
-   */
-  static successMessage(message: string, duration?: number): void {
-    this.success(message, undefined, duration);
-  }
-
-  /**
-   * Shows a simple error message
-   * @param message - The message to display as title
-   * @param duration - Optional duration in milliseconds
-   */
-  static errorMessage(message: string, duration?: number): void {
-    this.error(message, undefined, duration);
-  }
-
-  /**
-   * Shows a simple info message
-   * @param message - The message to display as title
-   * @param duration - Optional duration in milliseconds
-   */
-  static infoMessage(message: string, duration?: number): void {
-    this.info(message, undefined, duration);
-  }
-
-  /**
-   * Shows a simple warning message
-   * @param message - The message to display as title
-   * @param duration - Optional duration in milliseconds
-   */
-  static warningMessage(message: string, duration?: number): void {
-    this.warning(message, undefined, duration);
   }
 }
 
